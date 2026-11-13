@@ -1,132 +1,420 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Pesanan Baru | Kedai Kopi Senja</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #20251f;
+            --muted: #73796f;
+            --line: #e4e7e1;
+            --paper: #ffffff;
+            --canvas: #f5f6f2;
+            --green: #355b42;
+            --green-dark: #244231;
+            --green-pale: #edf3ed;
+            --amber: #a76d2d;
+            --amber-pale: #fbf1e4;
+            --red: #a6483e;
+            --radius: 8px;
+        }
 
-        <title>Laravel</title>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--canvas);
+            color: var(--ink);
+            font-family: "DM Sans", sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        button, input, select { font: inherit; }
+        button { cursor: pointer; }
+        .app-shell { display: flex; min-height: 100vh; }
+        .sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            z-index: 3;
+            display: flex;
+            width: 238px;
+            flex-direction: column;
+            padding: 28px 18px 20px;
+            background: var(--paper);
+            border-right: 1px solid var(--line);
+        }
+        .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 31px; }
+        .brand-mark {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--green);
+            color: white;
+            font-family: "Fraunces", serif;
+            font-size: 20px;
+        }
+        .brand-name { font-family: "Fraunces", serif; font-size: 17px; font-weight: 600; }
+        .brand-caption { color: var(--muted); font-size: 11px; }
+        .nav-label { padding: 0 11px 9px; color: #9a9f96; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .nav-list { display: grid; gap: 4px; }
+        .nav-link {
+            display: flex;
+            min-height: 42px;
+            align-items: center;
+            gap: 12px;
+            padding: 0 11px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #5e655c;
+            text-align: left;
+            text-decoration: none;
+            transition: background .16s ease, color .16s ease;
+        }
+        .nav-link:hover { background: #f4f6f2; color: var(--ink); }
+        .nav-link.active { background: var(--green-pale); color: var(--green-dark); font-weight: 700; }
+        .nav-icon { display: grid; width: 19px; place-items: center; font-size: 16px; }
+        .sidebar-bottom { margin-top: auto; padding: 16px 10px 0; border-top: 1px solid var(--line); }
+        .staff-label { color: var(--muted); font-size: 11px; }
+        .staff-name { margin-top: 3px; font-weight: 600; }
+        main { width: calc(100% - 238px); margin-left: 238px; padding: 36px 40px 48px; }
+        .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+        .eyebrow { margin-bottom: 5px; color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; }
+        h1 { margin: 0; font-family: "Fraunces", serif; font-size: 30px; font-weight: 500; line-height: 1.2; }
+        .page-description { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+        .sample-badge { flex: 0 0 auto; margin-top: 6px; padding: 6px 10px; border: 1px solid #e8d6bd; border-radius: 999px; background: var(--amber-pale); color: #87571f; font-size: 11px; font-weight: 600; }
+        .workspace { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, .9fr); align-items: start; gap: 20px; }
+        .panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 19px 20px 16px; border-bottom: 1px solid var(--line); }
+        .panel-title { margin: 0; font-size: 15px; font-weight: 700; }
+        .panel-hint { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+        .menu-tools { display: grid; gap: 14px; padding: 15px 20px 13px; }
+        .search-wrap { position: relative; }
+        .search-icon { position: absolute; top: 9px; left: 12px; color: #858b82; font-size: 15px; }
+        .search-input { width: 100%; height: 37px; padding: 0 12px 0 35px; border: 1px solid var(--line); border-radius: 5px; outline: none; background: #fff; }
+        .search-input:focus, select:focus { border-color: #829b87; box-shadow: 0 0 0 3px rgb(53 91 66 / 9%); }
+        .filters { display: flex; flex-wrap: wrap; gap: 7px; padding-bottom: 2px; }
+        .filter-button { flex: 0 0 auto; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px; background: white; color: #5f665e; font-size: 11px; }
+        .filter-button:hover, .filter-button.active { border-color: var(--green); background: var(--green); color: white; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 10px 12px; background: #f8f9f6; color: #858b82; font-size: 10px; font-weight: 700; letter-spacing: .45px; text-transform: uppercase; white-space: nowrap; }
+        td { padding: 12px; border-top: 1px solid #eef0ec; color: #525950; font-size: 12px; white-space: nowrap; }
+        th:first-child, td:first-child { padding-left: 20px; }
+        th:last-child, td:last-child { padding-right: 20px; text-align: right; }
+        .menu-name { color: var(--ink); font-size: 12px; font-weight: 600; }
+        .menu-category { margin-top: 2px; color: #92978f; font-size: 10px; }
+        .status { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 10px; }
+        .status::before { width: 6px; height: 6px; border-radius: 50%; background: #6d9a74; content: ""; }
+        .add-button { width: 28px; height: 28px; border: 1px solid #d5e0d5; border-radius: 5px; background: var(--green-pale); color: var(--green-dark); font-size: 17px; line-height: 1; }
+        .add-button:hover { border-color: var(--green); background: var(--green); color: white; }
+        .empty-menu { padding: 32px 20px; color: var(--muted); text-align: center; }
+        .order-panel { position: sticky; top: 20px; }
+        .order-count { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 50%; background: var(--green-pale); color: var(--green-dark); font-size: 11px; font-weight: 700; }
+        .order-body { padding: 0 20px; }
+        .order-empty { padding: 33px 8px; color: var(--muted); text-align: center; }
+        .order-empty-mark { display: grid; width: 42px; height: 42px; margin: 0 auto 10px; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: #8d958b; font-size: 18px; }
+        .order-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 15px 0; border-bottom: 1px solid #eef0ec; }
+        .order-item-name { color: var(--ink); font-size: 12px; font-weight: 600; }
+        .order-item-price { margin-top: 3px; color: var(--muted); font-size: 11px; }
+        .order-row-actions { display: flex; align-items: center; gap: 7px; }
+        .quantity-control { display: flex; align-items: center; gap: 8px; }
+        .quantity-button { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: white; color: #4e554c; }
+        .quantity-button:hover { border-color: var(--green); color: var(--green); }
+        .quantity-value { min-width: 12px; color: var(--ink); font-size: 11px; text-align: center; }
+        .remove-button { padding: 3px 5px; border: 0; background: transparent; color: #9b7772; font-size: 10px; }
+        .remove-button:hover { color: var(--red); }
+        .order-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 17px 0 15px; }
+        .field-label { display: block; margin-bottom: 6px; color: #777e74; font-size: 10px; font-weight: 700; }
+        select { width: 100%; height: 36px; padding: 0 9px; border: 1px solid var(--line); border-radius: 5px; outline: none; background: white; color: var(--ink); font-size: 11px; }
+        .totals { padding: 14px 0; border-top: 1px solid var(--line); }
+        .total-line { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; color: #73796f; font-size: 11px; }
+        .total-line strong { color: var(--ink); font-weight: 600; }
+        .grand-total { margin-top: 7px; padding-top: 11px; border-top: 1px dashed #dfe3dc; color: var(--ink); font-size: 13px; font-weight: 700; }
+        .save-button { width: 100%; min-height: 42px; margin: 2px 0 19px; border: 0; border-radius: 5px; background: var(--green); color: white; font-size: 12px; font-weight: 700; transition: background .16s ease, transform .16s ease; }
+        .save-button:hover:not(:disabled) { transform: translateY(-1px); background: var(--green-dark); }
+        .save-button:disabled { cursor: not-allowed; background: #b7c0b5; }
+        .toast { position: fixed; right: 24px; bottom: 24px; z-index: 5; max-width: min(390px, calc(100vw - 32px)); padding: 12px 16px; border: 1px solid #d9e3d8; border-radius: 6px; background: #fff; box-shadow: 0 8px 28px rgb(25 36 25 / 12%); color: var(--ink); font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .mobile-menu-button { display: none; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-        <!-- Fonts -->
-        <link href="https://fonts.bunny.net/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-
-        <!-- Styles -->
-        <style>
-            /*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */html{line-height:1.15;-webkit-text-size-adjust:100%}body{margin:0}a{background-color:transparent}[hidden]{display:none}html{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;line-height:1.5}*,:after,:before{box-sizing:border-box;border:0 solid #e2e8f0}a{color:inherit;text-decoration:inherit}svg,video{display:block;vertical-align:middle}video{max-width:100%;height:auto}.bg-white{--tw-bg-opacity: 1;background-color:rgb(255 255 255 / var(--tw-bg-opacity))}.bg-gray-100{--tw-bg-opacity: 1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.border-gray-200{--tw-border-opacity: 1;border-color:rgb(229 231 235 / var(--tw-border-opacity))}.border-t{border-top-width:1px}.flex{display:flex}.grid{display:grid}.hidden{display:none}.items-center{align-items:center}.justify-center{justify-content:center}.font-semibold{font-weight:600}.h-5{height:1.25rem}.h-8{height:2rem}.h-16{height:4rem}.text-sm{font-size:.875rem}.text-lg{font-size:1.125rem}.leading-7{line-height:1.75rem}.mx-auto{margin-left:auto;margin-right:auto}.ml-1{margin-left:.25rem}.mt-2{margin-top:.5rem}.mr-2{margin-right:.5rem}.ml-2{margin-left:.5rem}.mt-4{margin-top:1rem}.ml-4{margin-left:1rem}.mt-8{margin-top:2rem}.ml-12{margin-left:3rem}.-mt-px{margin-top:-1px}.max-w-6xl{max-width:72rem}.min-h-screen{min-height:100vh}.overflow-hidden{overflow:hidden}.p-6{padding:1.5rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.pt-8{padding-top:2rem}.fixed{position:fixed}.relative{position:relative}.top-0{top:0}.right-0{right:0}.shadow{--tw-shadow: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);--tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000),var(--tw-ring-shadow, 0 0 #0000),var(--tw-shadow)}.text-center{text-align:center}.text-gray-200{--tw-text-opacity: 1;color:rgb(229 231 235 / var(--tw-text-opacity))}.text-gray-300{--tw-text-opacity: 1;color:rgb(209 213 219 / var(--tw-text-opacity))}.text-gray-400{--tw-text-opacity: 1;color:rgb(156 163 175 / var(--tw-text-opacity))}.text-gray-500{--tw-text-opacity: 1;color:rgb(107 114 128 / var(--tw-text-opacity))}.text-gray-600{--tw-text-opacity: 1;color:rgb(75 85 99 / var(--tw-text-opacity))}.text-gray-700{--tw-text-opacity: 1;color:rgb(55 65 81 / var(--tw-text-opacity))}.text-gray-900{--tw-text-opacity: 1;color:rgb(17 24 39 / var(--tw-text-opacity))}.underline{text-decoration:underline}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.w-5{width:1.25rem}.w-8{width:2rem}.w-auto{width:auto}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}@media (min-width:640px){.sm\:rounded-lg{border-radius:.5rem}.sm\:block{display:block}.sm\:items-center{align-items:center}.sm\:justify-start{justify-content:flex-start}.sm\:justify-between{justify-content:space-between}.sm\:h-20{height:5rem}.sm\:ml-0{margin-left:0}.sm\:px-6{padding-left:1.5rem;padding-right:1.5rem}.sm\:pt-0{padding-top:0}.sm\:text-left{text-align:left}.sm\:text-right{text-align:right}}@media (min-width:768px){.md\:border-t-0{border-top-width:0}.md\:border-l{border-left-width:1px}.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (min-width:1024px){.lg\:px-8{padding-left:2rem;padding-right:2rem}}@media (prefers-color-scheme:dark){.dark\:bg-gray-800{--tw-bg-opacity: 1;background-color:rgb(31 41 55 / var(--tw-bg-opacity))}.dark\:bg-gray-900{--tw-bg-opacity: 1;background-color:rgb(17 24 39 / var(--tw-bg-opacity))}.dark\:border-gray-700{--tw-border-opacity: 1;border-color:rgb(55 65 81 / var(--tw-border-opacity))}.dark\:text-white{--tw-text-opacity: 1;color:rgb(255 255 255 / var(--tw-text-opacity))}.dark\:text-gray-400{--tw-text-opacity: 1;color:rgb(156 163 175 / var(--tw-text-opacity))}.dark\:text-gray-500{--tw-text-opacity: 1;color:rgb(107 114 128 / var(--tw-text-opacity))}}
-        </style>
-
-        <style>
-            body {
-                font-family: 'Nunito', sans-serif;
-            }
-        </style>
-    </head>
-    <body class="antialiased">
-        <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center py-4 sm:pt-0">
-            @if (Route::has('login'))
-                <div class="hidden fixed top-0 right-0 px-6 py-4 sm:block">
-                    @auth
-                        <a href="{{ url('/home') }}" class="text-sm text-gray-700 dark:text-gray-500 underline">Home</a>
-                    @else
-                        <a href="{{ route('login') }}" class="text-sm text-gray-700 dark:text-gray-500 underline">Log in</a>
-
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="ml-4 text-sm text-gray-700 dark:text-gray-500 underline">Register</a>
-                        @endif
-                    @endauth
-                </div>
-            @endif
-
-            <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
-                <div class="flex justify-center pt-8 sm:justify-start sm:pt-0">
-                    <svg viewBox="0 0 651 192" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-16 w-auto text-gray-700 sm:h-20">
-                        <g clip-path="url(#clip0)" fill="#EF3B2D">
-                            <path d="M248.032 44.676h-16.466v100.23h47.394v-14.748h-30.928V44.676zM337.091 87.202c-2.101-3.341-5.083-5.965-8.949-7.875-3.865-1.909-7.756-2.864-11.669-2.864-5.062 0-9.69.931-13.89 2.792-4.201 1.861-7.804 4.417-10.811 7.661-3.007 3.246-5.347 6.993-7.016 11.239-1.672 4.249-2.506 8.713-2.506 13.389 0 4.774.834 9.26 2.506 13.459 1.669 4.202 4.009 7.925 7.016 11.169 3.007 3.246 6.609 5.799 10.811 7.66 4.199 1.861 8.828 2.792 13.89 2.792 3.913 0 7.804-.955 11.669-2.863 3.866-1.908 6.849-4.533 8.949-7.875v9.021h15.607V78.182h-15.607v9.02zm-1.431 32.503c-.955 2.578-2.291 4.821-4.009 6.73-1.719 1.91-3.795 3.437-6.229 4.582-2.435 1.146-5.133 1.718-8.091 1.718-2.96 0-5.633-.572-8.019-1.718-2.387-1.146-4.438-2.672-6.156-4.582-1.719-1.909-3.032-4.152-3.938-6.73-.909-2.577-1.36-5.298-1.36-8.161 0-2.864.451-5.585 1.36-8.162.905-2.577 2.219-4.819 3.938-6.729 1.718-1.908 3.77-3.437 6.156-4.582 2.386-1.146 5.059-1.718 8.019-1.718 2.958 0 5.656.572 8.091 1.718 2.434 1.146 4.51 2.674 6.229 4.582 1.718 1.91 3.054 4.152 4.009 6.729.953 2.577 1.432 5.298 1.432 8.162-.001 2.863-.479 5.584-1.432 8.161zM463.954 87.202c-2.101-3.341-5.083-5.965-8.949-7.875-3.865-1.909-7.756-2.864-11.669-2.864-5.062 0-9.69.931-13.89 2.792-4.201 1.861-7.804 4.417-10.811 7.661-3.007 3.246-5.347 6.993-7.016 11.239-1.672 4.249-2.506 8.713-2.506 13.389 0 4.774.834 9.26 2.506 13.459 1.669 4.202 4.009 7.925 7.016 11.169 3.007 3.246 6.609 5.799 10.811 7.66 4.199 1.861 8.828 2.792 13.89 2.792 3.913 0 7.804-.955 11.669-2.863 3.866-1.908 6.849-4.533 8.949-7.875v9.021h15.607V78.182h-15.607v9.02zm-1.432 32.503c-.955 2.578-2.291 4.821-4.009 6.73-1.719 1.91-3.795 3.437-6.229 4.582-2.435 1.146-5.133 1.718-8.091 1.718-2.96 0-5.633-.572-8.019-1.718-2.387-1.146-4.438-2.672-6.156-4.582-1.719-1.909-3.032-4.152-3.938-6.73-.909-2.577-1.36-5.298-1.36-8.161 0-2.864.451-5.585 1.36-8.162.905-2.577 2.219-4.819 3.938-6.729 1.718-1.908 3.77-3.437 6.156-4.582 2.386-1.146 5.059-1.718 8.019-1.718 2.958 0 5.656.572 8.091 1.718 2.434 1.146 4.51 2.674 6.229 4.582 1.718 1.91 3.054 4.152 4.009 6.729.953 2.577 1.432 5.298 1.432 8.162 0 2.863-.479 5.584-1.432 8.161zM650.772 44.676h-15.606v100.23h15.606V44.676zM365.013 144.906h15.607V93.538h26.776V78.182h-42.383v66.724zM542.133 78.182l-19.616 51.096-19.616-51.096h-15.808l25.617 66.724h19.614l25.617-66.724h-15.808zM591.98 76.466c-19.112 0-34.239 15.706-34.239 35.079 0 21.416 14.641 35.079 36.239 35.079 12.088 0 19.806-4.622 29.234-14.688l-10.544-8.158c-.006.008-7.958 10.449-19.832 10.449-13.802 0-19.612-11.127-19.612-16.884h51.777c2.72-22.043-11.772-40.877-33.023-40.877zm-18.713 29.28c.12-1.284 1.917-16.884 18.589-16.884 16.671 0 18.697 15.598 18.813 16.884h-37.402zM184.068 43.892c-.024-.088-.073-.165-.104-.25-.058-.157-.108-.316-.191-.46-.056-.097-.137-.176-.203-.265-.087-.117-.161-.242-.265-.345-.085-.086-.194-.148-.29-.223-.109-.085-.206-.182-.327-.252l-.002-.001-.002-.002-35.648-20.524a2.971 2.971 0 00-2.964 0l-35.647 20.522-.002.002-.002.001c-.121.07-.219.167-.327.252-.096.075-.205.138-.29.223-.103.103-.178.228-.265.345-.066.089-.147.169-.203.265-.083.144-.133.304-.191.46-.031.085-.08.162-.104.25-.067.249-.103.51-.103.776v38.979l-29.706 17.103V24.493a3 3 0 00-.103-.776c-.024-.088-.073-.165-.104-.25-.058-.157-.108-.316-.191-.46-.056-.097-.137-.176-.203-.265-.087-.117-.161-.242-.265-.345-.085-.086-.194-.148-.29-.223-.109-.085-.206-.182-.327-.252l-.002-.001-.002-.002L40.098 1.396a2.971 2.971 0 00-2.964 0L1.487 21.919l-.002.002-.002.001c-.121.07-.219.167-.327.252-.096.075-.205.138-.29.223-.103.103-.178.228-.265.345-.066.089-.147.169-.203.265-.083.144-.133.304-.191.46-.031.085-.08.162-.104.25-.067.249-.103.51-.103.776v122.09c0 1.063.568 2.044 1.489 2.575l71.293 41.045c.156.089.324.143.49.202.078.028.15.074.23.095a2.98 2.98 0 001.524 0c.069-.018.132-.059.2-.083.176-.061.354-.119.519-.214l71.293-41.045a2.971 2.971 0 001.489-2.575v-38.979l34.158-19.666a2.971 2.971 0 001.489-2.575V44.666a3.075 3.075 0 00-.106-.774zM74.255 143.167l-29.648-16.779 31.136-17.926.001-.001 34.164-19.669 29.674 17.084-21.772 12.428-43.555 24.863zm68.329-76.259v33.841l-12.475-7.182-17.231-9.92V49.806l12.475 7.182 17.231 9.92zm2.97-39.335l29.693 17.095-29.693 17.095-29.693-17.095 29.693-17.095zM54.06 114.089l-12.475 7.182V46.733l17.231-9.92 12.475-7.182v74.537l-17.231 9.921zM38.614 7.398l29.693 17.095-29.693 17.095L8.921 24.493 38.614 7.398zM5.938 29.632l12.475 7.182 17.231 9.92v79.676l.001.005-.001.006c0 .114.032.221.045.333.017.146.021.294.059.434l.002.007c.032.117.094.222.14.334.051.124.088.255.156.371a.036.036 0 00.004.009c.061.105.149.191.222.288.081.105.149.22.244.314l.008.01c.084.083.19.142.284.215.106.083.202.178.32.247l.013.005.011.008 34.139 19.321v34.175L5.939 144.867V29.632h-.001zm136.646 115.235l-65.352 37.625V148.31l48.399-27.628 16.953-9.677v33.862zm35.646-61.22l-29.706 17.102V66.908l17.231-9.92 12.475-7.182v33.841z"/>
-                        </g>
-                    </svg>
-                </div>
-
-                <div class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow sm:rounded-lg">
-                    <div class="grid grid-cols-1 md:grid-cols-2">
-                        <div class="p-6">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-                                <div class="ml-4 text-lg leading-7 font-semibold"><a href="https://laravel.com/docs" class="underline text-gray-900 dark:text-white">Documentation</a></div>
-                            </div>
-
-                            <div class="ml-12">
-                                <div class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                                    Laravel has wonderful, thorough documentation covering every aspect of the framework. Whether you are new to the framework or have previous experience with Laravel, we recommend reading all of the documentation from beginning to end.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-6 border-t border-gray-200 dark:border-gray-700 md:border-t-0 md:border-l">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-gray-500"><path stroke-linecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>
-                                <div class="ml-4 text-lg leading-7 font-semibold"><a href="https://laracasts.com" class="underline text-gray-900 dark:text-white">Laracasts</a></div>
-                            </div>
-
-                            <div class="ml-12">
-                                <div class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                                    Laracasts offers thousands of video tutorials on Laravel, PHP, and JavaScript development. Check them out, see for yourself, and massively level up your development skills in the process.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-6 border-t border-gray-200 dark:border-gray-700">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                                <div class="ml-4 text-lg leading-7 font-semibold"><a href="https://laravel-news.com/" class="underline text-gray-900 dark:text-white">Laravel News</a></div>
-                            </div>
-
-                            <div class="ml-12">
-                                <div class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                                    Laravel News is a community driven portal and newsletter aggregating all of the latest and most important news in the Laravel ecosystem, including new package releases and tutorials.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-6 border-t border-gray-200 dark:border-gray-700 md:border-l">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 008.11 10.36L9.75 12l-.387.775c-.217.433-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.591l.13-.132a1.125 1.125 0 011.3-.21l.603.302a.809.809 0 001.086-1.086L14.25 7.5l1.256-.837a4.5 4.5 0 001.528-1.732l.146-.292M6.115 5.19A9 9 0 1017.18 4.64M6.115 5.19A8.965 8.965 0 0112 3c1.929 0 3.716.607 5.18 1.64" /></svg>
-                                <div class="ml-4 text-lg leading-7 font-semibold text-gray-900 dark:text-white">Vibrant Ecosystem</div>
-                            </div>
-
-                            <div class="ml-12">
-                                <div class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                                    Laravel's robust library of first-party tools and libraries, such as <a href="https://forge.laravel.com" class="underline">Forge</a>, <a href="https://vapor.laravel.com" class="underline">Vapor</a>, <a href="https://nova.laravel.com" class="underline">Nova</a>, and <a href="https://envoyer.io" class="underline">Envoyer</a> help you take your projects to the next level. Pair them with powerful open source libraries like <a href="https://laravel.com/docs/billing" class="underline">Cashier</a>, <a href="https://laravel.com/docs/dusk" class="underline">Dusk</a>, <a href="https://laravel.com/docs/broadcasting" class="underline">Echo</a>, <a href="https://laravel.com/docs/horizon" class="underline">Horizon</a>, <a href="https://laravel.com/docs/sanctum" class="underline">Sanctum</a>, <a href="https://laravel.com/docs/telescope" class="underline">Telescope</a>, and more.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-center mt-4 sm:items-center sm:justify-between">
-                    <div class="text-center text-sm text-gray-500 sm:text-left">
-                        <div class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-mt-px w-5 h-5 text-gray-400">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                            </svg>
-
-                            <a href="https://laravel.bigcartel.com" class="ml-1 underline">
-                                Shop
-                            </a>
-
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ml-4 -mt-px w-5 h-5 text-gray-400">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                            </svg>
-
-                            <a href="https://github.com/sponsors/taylorotwell" class="ml-1 underline">
-                                Sponsor
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="ml-4 text-center text-sm text-gray-500 sm:text-right sm:ml-0">
-                        Laravel v{{ Illuminate\Foundation\Application::VERSION }} (PHP v{{ PHP_VERSION }})
-                    </div>
+        @media (max-width: 1080px) {
+            main { padding: 30px 24px 40px; }
+            .workspace { grid-template-columns: 1fr; gap: 14px; }
+            .order-panel { position: static; }
+            .panel-head, .menu-tools { padding-right: 15px; padding-left: 15px; }
+            th, td { padding-right: 9px; padding-left: 9px; }
+            th:first-child, td:first-child { padding-left: 15px; }
+            th:last-child, td:last-child { padding-right: 15px; }
+        }
+        @media (max-width: 790px) {
+            .sidebar { width: 72px; align-items: center; padding: 19px 10px; }
+            .brand { justify-content: center; padding: 0 0 27px; }
+            .brand-copy, .nav-label, .nav-text, .sidebar-bottom { display: none; }
+            .nav-list { width: 100%; }
+            .nav-link { justify-content: center; padding: 0; }
+            .nav-icon { font-size: 17px; }
+            main { width: calc(100% - 72px); margin-left: 72px; padding: 27px 19px 36px; }
+            .workspace { grid-template-columns: 1fr; }
+            .order-panel { position: static; }
+        }
+        @media (max-width: 520px) {
+            .sidebar { position: sticky; top: 0; height: 100vh; }
+            main { padding: 22px 13px 28px; }
+            .page-head { margin-bottom: 18px; }
+            h1 { font-size: 25px; }
+            .page-description { max-width: 240px; font-size: 12px; }
+            .sample-badge { padding: 5px 8px; font-size: 10px; }
+            .panel-head { padding-top: 16px; padding-bottom: 13px; }
+            .menu-tools { gap: 11px; padding-top: 12px; padding-bottom: 11px; }
+            .table-wrap { margin: 0 -1px; }
+            th, td { padding-top: 10px; padding-bottom: 10px; }
+            .order-panel { margin-bottom: 10px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="Navigasi utama">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">S</div>
+                <div class="brand-copy">
+                    <div class="brand-name">Kedai Kopi Senja</div>
+                    <div class="brand-caption">Sistem Informasi Kafe</div>
                 </div>
             </div>
-        </div>
-    </body>
+
+            <div class="nav-label">Transaksi</div>
+            <nav class="nav-list">
+                <a class="nav-link active" href="#pesanan-baru" aria-current="page" title="Pesanan Baru">
+                    <span class="nav-icon" aria-hidden="true">+</span><span class="nav-text">Pesanan Baru</span>
+                </a>
+                <button class="nav-link" type="button" data-coming-soon title="Daftar Pesanan">
+                    <span class="nav-icon" aria-hidden="true">&#9776;</span><span class="nav-text">Daftar Pesanan</span>
+                </button>
+            </nav>
+
+            <div class="nav-label" style="margin-top: 27px">Operasional</div>
+            <nav class="nav-list">
+                <button class="nav-link" type="button" data-coming-soon title="Menu">
+                    <span class="nav-icon" aria-hidden="true">&#9634;</span><span class="nav-text">Menu</span>
+                </button>
+                <button class="nav-link" type="button" data-coming-soon title="Bahan & Stok">
+                    <span class="nav-icon" aria-hidden="true">&#9671;</span><span class="nav-text">Bahan &amp; Stok</span>
+                </button>
+                <button class="nav-link" type="button" data-coming-soon title="Stok Masuk">
+                    <span class="nav-icon" aria-hidden="true">&#8595;</span><span class="nav-text">Stok Masuk</span>
+                </button>
+                <button class="nav-link" type="button" data-coming-soon title="Laporan">
+                    <span class="nav-icon" aria-hidden="true">&#9636;</span><span class="nav-text">Laporan</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="staff-label">Masuk sebagai</div>
+                <div class="staff-name">Kasir</div>
+            </div>
+        </aside>
+
+        <main id="pesanan-baru">
+            <header class="page-head">
+                <div>
+                    <div class="eyebrow">Transaksi</div>
+                    <h1>Pesanan Baru</h1>
+                    <p class="page-description">Pilih menu, atur jumlah, lalu lengkapi rincian pesanan.</p>
+                </div>
+                <span class="sample-badge">Data contoh</span>
+            </header>
+
+            <div class="workspace">
+                <section class="panel" aria-labelledby="menu-heading">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title" id="menu-heading">Menu tersedia</h2>
+                            <p class="panel-hint">Pilih menu untuk menambahkannya ke pesanan.</p>
+                        </div>
+                    </div>
+                    <div class="menu-tools">
+                        <label class="search-wrap">
+                            <span class="search-icon" aria-hidden="true">&#9906;</span>
+                            <input class="search-input" id="menu-search" type="search" placeholder="Cari nama menu..." aria-label="Cari menu">
+                        </label>
+                        <div class="filters" role="group" aria-label="Filter kategori menu">
+                            <button class="filter-button active" type="button" data-category="Semua">Semua</button>
+                            <button class="filter-button" type="button" data-category="Kopi">Kopi</button>
+                            <button class="filter-button" type="button" data-category="Non-kopi">Non-kopi</button>
+                            <button class="filter-button" type="button" data-category="Makanan">Makanan</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>Menu</th><th>Harga</th><th>Status</th><th><span class="sr-only">Tambah</span></th></tr>
+                            </thead>
+                            <tbody id="menu-list"></tbody>
+                        </table>
+                        <div class="empty-menu" id="menu-empty" hidden>Menu tidak ditemukan.</div>
+                    </div>
+                </section>
+
+                <section class="panel order-panel" aria-labelledby="order-heading">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title" id="order-heading">Rincian Pesanan</h2>
+                            <p class="panel-hint">Periksa kembali sebelum melanjutkan.</p>
+                        </div>
+                        <span class="order-count" id="item-count" aria-label="Jumlah item">0</span>
+                    </div>
+                    <div class="order-body">
+                        <div id="order-items" aria-live="polite"></div>
+                        <div class="order-empty" id="order-empty">
+                            <div class="order-empty-mark" aria-hidden="true">+</div>
+                            Belum ada menu dipilih.
+                        </div>
+                        <div class="order-settings">
+                            <label>
+                                <span class="field-label">Nomor meja</span>
+                                <select id="table-number" aria-label="Nomor meja">
+                                    <option value="">Pilih meja</option>
+                                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                                    <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span class="field-label">Metode bayar</span>
+                                <select id="payment-method" aria-label="Metode pembayaran">
+                                    <option value="Tunai">Tunai</option>
+                                    <option value="QRIS">QRIS</option>
+                                    <option value="Kartu debit">Kartu debit</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="totals" aria-live="polite">
+                            <div class="total-line"><span>Subtotal</span><strong id="subtotal">Rp0</strong></div>
+                            <div class="total-line"><span>Biaya layanan (5%)</span><strong id="service-charge">Rp0</strong></div>
+                            <div class="total-line"><span>Pajak (10%)</span><strong id="tax">Rp0</strong></div>
+                            <div class="total-line grand-total"><span>Total bayar</span><strong id="grand-total">Rp0</strong></div>
+                        </div>
+                        <button class="save-button" id="save-order" type="button" disabled>Simpan Pesanan</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        const menuItems = [
+            { id: 1, name: 'Kopi Susu Senja', category: 'Kopi', price: 22000 },
+            { id: 2, name: 'Americano', category: 'Kopi', price: 18000 },
+            { id: 3, name: 'Cafe Latte', category: 'Kopi', price: 25000 },
+            { id: 4, name: 'Matcha Latte', category: 'Non-kopi', price: 26000 },
+            { id: 5, name: 'Chocolate', category: 'Non-kopi', price: 24000 },
+            { id: 6, name: 'Croissant Butter', category: 'Makanan', price: 20000 },
+            { id: 7, name: 'Pisang Goreng', category: 'Makanan', price: 18000 }
+        ];
+        const cart = new Map();
+        let activeCategory = 'Semua';
+        let toastTimer;
+
+        function formatRupiah(value) {
+            return `Rp${new Intl.NumberFormat('id-ID').format(value)}`;
+        }
+
+        function renderMenu() {
+            const query = document.getElementById('menu-search').value.trim().toLocaleLowerCase('id');
+            const visibleItems = menuItems.filter((item) => {
+                const matchesCategory = activeCategory === 'Semua' || item.category === activeCategory;
+                return matchesCategory && item.name.toLocaleLowerCase('id').includes(query);
+            });
+            const list = document.getElementById('menu-list');
+            list.replaceChildren(...visibleItems.map((item) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td><div class="menu-name"></div><div class="menu-category"></div></td><td></td><td><span class="status">Tersedia</span></td><td><button class="add-button" type="button" aria-label="Tambah menu"></button></td>`;
+                row.querySelector('.menu-name').textContent = item.name;
+                row.querySelector('.menu-category').textContent = item.category;
+                row.children[1].textContent = formatRupiah(item.price);
+                row.querySelector('.add-button').textContent = '+';
+                row.querySelector('.add-button').addEventListener('click', () => changeQuantity(item.id, 1));
+                return row;
+            }));
+            document.getElementById('menu-empty').hidden = visibleItems.length > 0;
+        }
+
+        function changeQuantity(id, amount) {
+            const quantity = (cart.get(id) || 0) + amount;
+            if (quantity <= 0) cart.delete(id);
+            else cart.set(id, quantity);
+            renderOrder();
+        }
+
+        function renderOrder() {
+            const orderItems = document.getElementById('order-items');
+            const selectedItems = menuItems.filter((item) => cart.has(item.id));
+            orderItems.replaceChildren(...selectedItems.map((item) => {
+                const row = document.createElement('div');
+                row.className = 'order-row';
+                row.innerHTML = '<div><div class="order-item-name"></div><div class="order-item-price"></div></div><div class="order-row-actions"><div class="quantity-control"><button class="quantity-button decrease" type="button" aria-label="Kurangi jumlah">-</button><span class="quantity-value"></span><button class="quantity-button increase" type="button" aria-label="Tambah jumlah">+</button></div><button class="remove-button" type="button">Hapus</button></div>';
+                row.querySelector('.order-item-name').textContent = item.name;
+                row.querySelector('.order-item-price').textContent = `${formatRupiah(item.price)} / item`;
+                row.querySelector('.quantity-value').textContent = cart.get(item.id);
+                row.querySelector('.decrease').addEventListener('click', () => changeQuantity(item.id, -1));
+                row.querySelector('.increase').addEventListener('click', () => changeQuantity(item.id, 1));
+                row.querySelector('.remove-button').addEventListener('click', () => changeQuantity(item.id, -cart.get(item.id)));
+                return row;
+            }));
+
+            const subtotal = selectedItems.reduce((sum, item) => sum + item.price * cart.get(item.id), 0);
+            const serviceCharge = Math.round(subtotal * 0.05);
+            const tax = Math.round(subtotal * 0.10);
+            const count = [...cart.values()].reduce((sum, quantity) => sum + quantity, 0);
+            document.getElementById('order-empty').hidden = count > 0;
+            document.getElementById('item-count').textContent = count;
+            document.getElementById('subtotal').textContent = formatRupiah(subtotal);
+            document.getElementById('service-charge').textContent = formatRupiah(serviceCharge);
+            document.getElementById('tax').textContent = formatRupiah(tax);
+            document.getElementById('grand-total').textContent = formatRupiah(subtotal + serviceCharge + tax);
+            document.getElementById('save-order').disabled = count === 0;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('visible'), 3200);
+        }
+
+        document.getElementById('menu-search').addEventListener('input', renderMenu);
+        document.querySelectorAll('.filter-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                activeCategory = button.dataset.category;
+                document.querySelector('.filter-button.active').classList.remove('active');
+                button.classList.add('active');
+                renderMenu();
+            });
+        });
+        document.querySelectorAll('[data-coming-soon]').forEach((button) => {
+            button.addEventListener('click', () => showToast('Halaman ini akan dibuat pada tahap berikutnya.'));
+        });
+        document.getElementById('save-order').addEventListener('click', () => {
+            showToast('Tampilan ini belum menyimpan transaksi ke database.');
+        });
+
+        renderMenu();
+        renderOrder();
+    </script>
+</body>
 </html>
