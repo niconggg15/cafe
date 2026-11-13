@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Bahan;
 use Illuminate\Database\Seeder;
 
 class DemoSeeder extends Seeder
@@ -14,6 +14,6 @@ class DemoSeeder extends Seeder
      */
     public function run()
     {
-        //
+        Bahan::where('nama_bahan', 'Susu UHT')->update(['stok' => 300]);
     }
 }
