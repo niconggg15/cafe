@@ -31,4 +31,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'supplier' => [
+        'url' => env('SUPPLIER_URL'),
+        'api_key' => env('SUPPLIER_API_KEY'),
+        'timeout' => 5,
+    ],
+
 ];

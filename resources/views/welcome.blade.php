@@ -84,6 +84,21 @@
         .sidebar-bottom { margin-top: auto; padding: 16px 10px 0; border-top: 1px solid var(--line); }
         .staff-label { color: var(--muted); font-size: 11px; }
         .staff-name { margin-top: 3px; font-weight: 600; }
+        .staff-role { color: var(--muted); font-size: 11px; }
+        .page-head-actions { display: flex; align-items: center; gap: 10px; }
+        .logout-form { margin: 0; }
+        .logout-button {
+            min-height: 34px;
+            padding: 0 12px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: var(--paper);
+            color: var(--ink);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .logout-button:hover { border-color: var(--green); color: var(--green-dark); }
         main { width: calc(100% - 238px); margin-left: 238px; padding: 36px 40px 48px; }
         .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
         .eyebrow { margin-bottom: 5px; color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; }
@@ -223,7 +238,8 @@
 
             <div class="sidebar-bottom">
                 <div class="staff-label">Masuk sebagai</div>
-                <div class="staff-name">Kasir</div>
+                <div class="staff-name">{{ auth()->user()->nama }}</div>
+                <div class="staff-role">{{ auth()->user()->role }}</div>
             </div>
         </aside>
 
@@ -234,7 +250,13 @@
                     <h1>Pesanan Baru</h1>
                     <p class="page-description">Pilih menu, atur jumlah, lalu lengkapi rincian pesanan.</p>
                 </div>
-                <span class="sample-badge">Data contoh</span>
+                <div class="page-head-actions">
+                    <span class="sample-badge">Data contoh</span>
+                    <form class="logout-form" method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="logout-button" type="submit">Keluar</button>
+                    </form>
+                </div>
             </header>
 
             <div class="workspace">

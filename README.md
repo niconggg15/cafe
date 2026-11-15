@@ -1,3 +1,35 @@
+## Kedai Kopi Senja
+
+Aplikasi ini memakai Laravel 9, MySQL, dan Blade untuk halaman staf.
+
+### Menjalankan aplikasi
+
+1. Buat database MySQL bernama `cafe`, salin `.env.example` menjadi `.env`, lalu isi koneksi database.
+2. Jalankan:
+
+   ```powershell
+   composer install
+   php artisan key:generate
+   php artisan migrate
+   php artisan db:seed --class=StafSeeder
+   npm install
+   npm run build
+   php artisan serve
+   ```
+
+3. Buka `http://127.0.0.1:8000/login`.
+
+Login staf menggunakan nomor HP dan password:
+
+| Peran | Nomor HP | Password |
+|---|---|---|
+| Manajer | `081100000001` | `Manajer123` |
+| Kasir | `081100000002` | `Kasir123` |
+
+Jangan commit `.env` atau kredensial pribadi. Untuk rancangan dan urutan kerja lengkap, lihat [Dokumentasi Perancangan Annisa](./docs/perancangan-annisa/Dokumentasi.md).
+
+Web staf memakai Blade: Kasir menangani pesanan, status transaksi, struk, dan reset password pelanggan; Manajer mengelola bahan, menu, resep, stok, HPP, serta laporan. Akun staf baru diarahkan untuk mengganti password saat pertama masuk. Integrasi harga Supplier bersifat opsional dan memakai `SUPPLIER_URL` serta `SUPPLIER_API_KEY` dari `.env`; server mengirim header `X-API-Key` dan mengharapkan daftar `{ "nama": "...", "harga": 0 }`.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
