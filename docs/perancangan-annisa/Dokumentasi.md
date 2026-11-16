@@ -89,7 +89,7 @@ php artisan make:model Resep -m
 php artisan make:model StokMasuk -m
 php artisan make:model Pesanan -m
 php artisan make:model DetailPesanan -m
-php artisan make:migration add_kolom_kafe_ke_users_table --table=users
+php artisan make:migration add_kolom_kafe_ke_users_table --table=users   # isi: username (unik, nullable), role, wajib_ganti_password; no_hp dibuat nullable
 
 # Controller web
 php artisan make:controller Web/AuthController
@@ -196,7 +196,7 @@ Tes dari browser HP: `http://192.168.1.10:8000`. Bila halaman muncul, server ter
 
 | Tabel | Kolom penting |
 |---|---|
-| `users` | `nama`, `no_hp` (unik, sudah ternormalisasi), `password` (hash), `role` (Kasir/Manajer/Pelanggan), `wajib_ganti_password` (bool, default false) |
+| `users` | `nama`, `username` (unik; diisi untuk Kasir/Manajer, kosong untuk Pelanggan), `no_hp` (unik, sudah ternormalisasi; wajib untuk Pelanggan, boleh kosong untuk staf), `password` (hash), `role` (Kasir/Manajer/Pelanggan), `wajib_ganti_password` (bool, default false) |
 | `bahan` | `nama_bahan` (unik), `satuan` (g/ml/pcs), `stok`, `batas_minimum` (default 0), `harga_per_satuan`, `harga_diperbarui_at` |
 | `menu` | `nama_menu`, `harga_jual`, `status` (Aktif/Habis/Nonaktif) |
 | `resep` | `menu_id`, `bahan_id`, `takaran` — unik pasangan (`menu_id`, `bahan_id`) |
@@ -613,7 +613,7 @@ Sidebar dibangun dari `auth()->user()->role`, dan keamanan tetap dari middleware
 
 | Peran | Halaman | Route | Isi |
 |---|---|---|---|
-| Semua staf | Login | `/login` | nomor HP + password; tolak peran Pelanggan di web |
+| Semua staf | Login | `/login` | username + password; tolak peran Pelanggan di web |
 | Semua staf | Ganti password | `/ganti-password` | password lama, baru, konfirmasi (min. 8) |
 | Kasir | Pesanan Baru | `/pesanan/baru` | daftar menu + tombol +/−, pilih meja 1–10, metode bayar, ringkasan subtotal/service/pajak/total, tombol buat pesanan |
 | Kasir | Daftar Pesanan | `/pesanan` | tabel pesanan, tombol ubah status, batal (hanya saat Baru), lihat struk |
@@ -725,7 +725,7 @@ Perintah harus aman dijalankan dalam database yang sudah `migrate:fresh`. Bila d
 
 ### G3. Seeder
 
-- `StafSeeder`: satu Manajer dan satu Kasir, password di-hash.
+- `StafSeeder`: satu Manajer dan satu Kasir, masing-masing dengan `username` dan password di-hash (`no_hp` dikosongkan).
 - `DemoSeeder`: **hanya** mengubah stok Susu UHT menjadi 300 ml (0,3 liter). Pakai `update` (bukan membuat baris baru) agar aman diulang, dan jangan membuat pesanan apa pun.
 
 ```php
@@ -736,9 +736,9 @@ Akun uji (usulan; samakan dengan seeder dan README):
 
 | Peran | Login | Password |
 |---|---|---|
-| Manajer | `081100000001` | `Manajer123` |
-| Kasir | `081100000002` | `Kasir123` |
-| Pelanggan | `081100000003` (daftar lewat APK) | `Pelanggan123` |
+| Manajer | username `manajer` | `Manajer123` |
+| Kasir | username `kasir` | `Kasir123` |
+| Pelanggan | nomor HP `081100000003` (daftar lewat APK) | `Pelanggan123` |
 
 ---
 
