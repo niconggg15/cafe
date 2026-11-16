@@ -16,7 +16,7 @@ class WebLoginTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('Masuk sebagai Kasir atau Manajer')
-            ->assertSee('name="no_hp"', false)
+            ->assertSee('name="username"', false)
             ->assertSee('name="password"', false);
     }
 
@@ -26,15 +26,15 @@ class WebLoginTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function test_login_requires_phone_number_and_password(): void
+    public function test_login_requires_username_and_password(): void
     {
         $this->from(route('login'))
             ->post(route('login'), [])
             ->assertRedirect(route('login'))
-            ->assertSessionHasErrors(['no_hp', 'password']);
+            ->assertSessionHasErrors(['username', 'password']);
     }
 
-    public function test_login_uses_phone_number_and_shows_the_matching_error(): void
+    public function test_login_uses_username_and_shows_the_matching_error(): void
     {
         config([
             'database.default' => 'sqlite',
@@ -46,7 +46,8 @@ class WebLoginTest extends TestCase
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('nama');
-            $table->string('no_hp')->unique();
+            $table->string('username')->nullable()->unique();
+            $table->string('no_hp')->nullable()->unique();
             $table->string('email')->nullable();
             $table->string('password');
             $table->string('role');
@@ -57,6 +58,7 @@ class WebLoginTest extends TestCase
 
         User::create([
             'nama' => 'Kasir Uji',
+            'username' => 'kasir-uji',
             'no_hp' => '08123456789',
             'email' => 'kasir@example.test',
             'password' => Hash::make('correct-password'),
@@ -65,21 +67,21 @@ class WebLoginTest extends TestCase
 
         $this->from(route('login'))
             ->post(route('login'), [
-                'no_hp' => '08123456789',
+                'username' => 'kasir-uji',
                 'password' => 'wrong-password',
             ])
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors([
-                'no_hp' => 'Nomor HP atau password tidak sesuai.',
+                'username' => 'Username atau password tidak sesuai.',
             ])
-            ->assertSessionHas('_old_input.no_hp', '08123456789');
+            ->assertSessionHas('_old_input.username', 'kasir-uji');
 
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('Nomor HP atau password tidak sesuai.');
+            ->assertSee('Username atau password tidak sesuai.');
 
         $this->post(route('login'), [
-            'no_hp' => '08123456789',
+            'username' => 'kasir-uji',
             'password' => 'correct-password',
         ])->assertRedirect(route('dashboard'));
 

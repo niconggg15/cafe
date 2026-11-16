@@ -86,7 +86,7 @@ class PesananService
             }
 
             $service = round($subtotal * 0.05);
-            $pajak = round($subtotal * 0.10);
+            $pajak = round(($subtotal + $service) * 0.10);
             $pesanan = Pesanan::create([
                 'kasir_id' => $kasirId,
                 'no_meja' => $data['no_meja'],
@@ -136,7 +136,7 @@ class PesananService
     public function batalkan(Pesanan $pesanan): void
     {
         DB::transaction(function () use ($pesanan) {
-            $pesanan = Pesanan::with('detail')->lockForUpdate()->findOrFail($pesanan->id);
+            $pesanan = Pesanan::with('detail.menu.resep')->lockForUpdate()->findOrFail($pesanan->id);
 
             if ($pesanan->status !== 'Baru') {
                 throw ValidationException::withMessages(['status' => 'Hanya pesanan berstatus Baru yang dapat dibatalkan.']);
@@ -145,16 +145,10 @@ class PesananService
             $menuIds = $pesanan->detail->pluck('menu_id')->all();
             $perubahanStok = [];
             foreach ($pesanan->detail as $detail) {
-                $resepTransaksi = $detail->resep_saat_transaksi;
-                if ($resepTransaksi === null) {
-                    $resepTransaksi = Menu::with('resep')->find($detail->menu_id)?->resep
-                        ->map(fn ($resep) => ['bahan_id' => $resep->bahan_id, 'takaran' => $resep->takaran])
-                        ->all() ?? [];
-                }
-                foreach ($resepTransaksi as $resep) {
-                    $bahanId = $resep['bahan_id'];
+                foreach ($detail->menu->resep as $resep) {
+                    $bahanId = $resep->bahan_id;
                     $perubahanStok[$bahanId] = ($perubahanStok[$bahanId] ?? 0)
-                        + (float) $resep['takaran'] * $detail->jumlah;
+                        + (float) $resep->takaran * $detail->jumlah;
                 }
             }
 

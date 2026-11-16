@@ -19,14 +19,15 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'no_hp' => ['required', 'string', 'max:20'],
+            'username' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string'],
         ]);
+        $credentials['username'] = trim($credentials['username']);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
-                ->withErrors(['no_hp' => 'Nomor HP atau password tidak sesuai.'])
-                ->onlyInput('no_hp');
+                ->withErrors(['username' => 'Username atau password tidak sesuai.'])
+                ->onlyInput('username');
         }
 
         if ($request->user()->role === 'Pelanggan') {
@@ -35,8 +36,8 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
 
             return back()
-                ->withErrors(['no_hp' => 'Login web hanya tersedia untuk akun Kasir dan Manajer.'])
-                ->onlyInput('no_hp');
+                ->withErrors(['username' => 'Login web hanya tersedia untuk akun Kasir dan Manajer.'])
+                ->onlyInput('username');
         }
 
         $request->session()->regenerate();

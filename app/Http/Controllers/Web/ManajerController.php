@@ -59,7 +59,7 @@ class ManajerController extends Controller
         return view('manajer.menu', ['menus' => Menu::withCount('resep')->orderBy('nama_menu')->paginate(20)]);
     }
 
-    public function simpanMenu(Request $request, ?Menu $menu = null): RedirectResponse
+    public function simpanMenu(Request $request, MenuStatusService $menuStatus, ?Menu $menu = null): RedirectResponse
     {
         $data = $request->validate([
             'nama_menu' => ['required', 'string', 'max:255'],
@@ -74,6 +74,8 @@ class ManajerController extends Controller
         } else {
             $menu = Menu::create($data);
         }
+
+        $menuStatus->segarkan([$menu->id]);
 
         return back()->with('success', 'Data menu berhasil disimpan.');
     }

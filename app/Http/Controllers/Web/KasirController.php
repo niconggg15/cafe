@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\User;
+use App\Services\NomorHp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -28,7 +29,12 @@ class KasirController extends Controller
     public function resetPassword(Request $request): RedirectResponse
     {
         $data = $request->validate(['no_hp' => ['required', 'string', 'max:20']]);
-        $pelanggan = User::where('no_hp', $data['no_hp'])->where('role', 'Pelanggan')->first();
+        $noHp = NomorHp::normal($data['no_hp']);
+        if ($noHp === null) {
+            return back()->withErrors(['no_hp' => 'Format nomor HP tidak valid.'])->withInput();
+        }
+
+        $pelanggan = User::where('no_hp', $noHp)->where('role', 'Pelanggan')->first();
 
         if (! $pelanggan) {
             return back()->withErrors(['no_hp' => 'Pelanggan dengan nomor HP tersebut tidak ditemukan.'])->withInput();

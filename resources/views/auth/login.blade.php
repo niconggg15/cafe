@@ -124,18 +124,17 @@
         <form method="POST" action="{{ route('login') }}">
             @csrf
             <div class="field">
-                <label for="no_hp">Nomor HP</label>
+                <label for="username">Username</label>
                 <input
-                    id="no_hp"
-                    name="no_hp"
-                    type="tel"
-                    value="{{ old('no_hp') }}"
+                    id="username"
+                    name="username"
+                    type="text"
+                    value="{{ old('username') }}"
                     autocomplete="username"
-                    inputmode="tel"
-                    maxlength="20"
+                    maxlength="255"
                     required
                     autofocus
-                    aria-invalid="{{ $errors->has('no_hp') ? 'true' : 'false' }}"
+                    aria-invalid="{{ $errors->has('username') ? 'true' : 'false' }}"
                 >
             </div>
 

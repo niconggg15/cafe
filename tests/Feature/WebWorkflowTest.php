@@ -89,7 +89,8 @@ class WebWorkflowTest extends TestCase
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('nama');
-            $table->string('no_hp')->unique();
+            $table->string('username')->nullable()->unique();
+            $table->string('no_hp')->nullable()->unique();
             $table->string('email')->nullable();
             $table->string('password');
             $table->string('role');
@@ -99,7 +100,7 @@ class WebWorkflowTest extends TestCase
         });
     }
 
-    public function test_order_deducts_stock_and_cancellation_restores_ordered_recipe_snapshot(): void
+    public function test_order_deducts_stock_and_cancellation_restores_current_recipe(): void
     {
         $bahan = Bahan::create([
             'nama_bahan' => 'Biji kopi',
@@ -118,12 +119,37 @@ class WebWorkflowTest extends TestCase
         ], 9);
 
         $this->assertSame(480.0, (float) $bahan->fresh()->stok);
-        $this->assertSame(46000.0, (float) $pesanan->total_bayar);
+        $this->assertSame(2000.0, (float) $pesanan->service_charge);
+        $this->assertSame(4200.0, (float) $pesanan->pajak);
+        $this->assertSame(46200.0, (float) $pesanan->total_bayar);
+        $service->batalkan($pesanan);
+
+        $this->assertSame(500.0, (float) $bahan->fresh()->stok);
+        $this->assertSame('Dibatalkan', $pesanan->fresh()->status);
+    }
+
+    public function test_cancellation_restores_stock_using_the_current_recipe(): void
+    {
+        $bahan = Bahan::create([
+            'nama_bahan' => 'Biji kopi',
+            'satuan' => 'g',
+            'stok' => 500,
+            'harga_per_satuan' => 100,
+        ]);
+        $menu = Menu::create(['nama_menu' => 'Kopi Senja', 'harga_jual' => 20000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
+
+        $service = app(PesananService::class);
+        $pesanan = $service->buat([
+            'items' => [$menu->id => 2],
+            'no_meja' => 3,
+            'metode_bayar' => 'Tunai',
+        ], 9);
 
         Resep::where('menu_id', $menu->id)->update(['takaran' => 20]);
         $service->batalkan($pesanan);
 
-        $this->assertSame(500.0, (float) $bahan->fresh()->stok);
+        $this->assertSame(520.0, (float) $bahan->fresh()->stok);
         $this->assertSame('Dibatalkan', $pesanan->fresh()->status);
     }
 
@@ -206,6 +232,51 @@ class WebWorkflowTest extends TestCase
         ] as $routeName) {
             $this->actingAs($manajer)->get(route($routeName))->assertOk();
         }
+    }
+
+    public function test_saving_menu_refreshes_its_status_from_current_ingredient_stock(): void
+    {
+        $bahan = Bahan::create(['nama_bahan' => 'Biji kopi', 'satuan' => 'g', 'stok' => 5]);
+        $menu = Menu::create(['nama_menu' => 'Kopi Senja', 'harga_jual' => 20000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
+
+        $this->actingAs(new User(['nama' => 'Manajer Uji', 'role' => 'Manajer']))
+            ->put(route('manajer.menu.update', $menu), [
+                'nama_menu' => 'Kopi Senja',
+                'kategori' => 'Kopi',
+                'harga_jual' => 20000,
+                'status' => 'Aktif',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Habis', $menu->fresh()->status);
+    }
+
+    public function test_cashier_reset_password_normalizes_customer_phone(): void
+    {
+        $pelanggan = User::create([
+            'nama' => 'Pelanggan Uji',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('PasswordLama123'),
+            'role' => 'Pelanggan',
+        ]);
+
+        $response = $this->actingAs(new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']))
+            ->post(route('kasir.reset-password.simpan'), ['no_hp' => '+62 812-3456-7890']);
+
+        $response->assertRedirect(route('kasir.reset-password'))
+            ->assertSessionHas('reset_pelanggan', '081234567890')
+            ->assertSessionHas('password_sementara', function ($passwordSementara) use ($pelanggan) {
+                return Hash::check($passwordSementara, $pelanggan->fresh()->password);
+            });
+        $this->assertTrue((bool) $pelanggan->fresh()->wajib_ganti_password);
+    }
+
+    public function test_cashier_reset_password_rejects_invalid_phone_number(): void
+    {
+        $this->actingAs(new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']))
+            ->post(route('kasir.reset-password.simpan'), ['no_hp' => '0812invalid'])
+            ->assertSessionHasErrors('no_hp');
     }
 
     public function test_supplier_prices_update_known_ingredients_only(): void

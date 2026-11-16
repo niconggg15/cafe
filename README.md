@@ -1,98 +1,113 @@
-## Kedai Kopi Senja
+# Kedai Kopi Senja
 
-Aplikasi ini memakai Laravel 9, MySQL, dan Blade untuk halaman staf.
+## 1) Ringkasan
 
-### Menjalankan aplikasi
+Proyek UKK RPL Soal 3 Varian C ini adalah aplikasi website internal Kedai Kopi Senja. Kasir mengelola pesanan dan struk; Manajer mengelola bahan, menu, resep, stok, harga, serta laporan. Fokus repo saat ini adalah website staf. APK Android, REST API pelanggan, dan impor CSV belum tersedia.
 
-1. Buat database MySQL bernama `cafe`, salin `.env.example` menjadi `.env`, lalu isi koneksi database.
-2. Jalankan:
+## 2) Teknologi
+
+- Laravel 9 dan PHP
+- MySQL
+- Blade untuk halaman web
+- Vite dan npm untuk aset front-end
+- PHPUnit untuk pengujian
+
+## 3) Cara menjalankan server
+
+1. Siapkan PHP, Composer, Node.js/npm, dan MySQL.
+2. Dari folder proyek, jalankan perintah berikut di PowerShell:
 
    ```powershell
    composer install
+   Copy-Item .env.example .env
+   ```
+
+3. Isi koneksi database di `.env` (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`). Buat database MySQL terlebih dahulu.
+4. Jalankan:
+
+   ```powershell
    php artisan key:generate
    php artisan migrate
    php artisan db:seed --class=StafSeeder
+   php artisan db:seed --class=DemoSeeder
    npm install
    npm run build
    php artisan serve
    ```
 
-3. Buka `http://127.0.0.1:8000/login`.
+5. Buka alamat server yang ditampilkan Artisan, biasanya `http://127.0.0.1:8000`.
 
-Login staf menggunakan nomor HP dan password:
+Variabel integrasi Supplier (`SUPPLIER_URL` dan `SUPPLIER_API_KEY`) bersifat opsional. Jika belum memakai integrasi, biarkan nilainya kosong.
 
-| Peran | Nomor HP | Password |
+## 4) Cara memasang APK
+
+Belum dapat dilakukan: repo ini belum menyediakan APK Android (`.apk`). Bagian Android direncanakan untuk tahap berikutnya.
+
+## 5) Akun uji
+
+Akun staf uji:
+
+| Peran | Username | Password |
 |---|---|---|
-| Manajer | `081100000001` | `Manajer123` |
-| Kasir | `081100000002` | `Kasir123` |
+| Manajer | `manajer` | `Manajer123` |
+| Kasir | `kasir` | `Kasir123` |
 
-Jangan commit `.env` atau kredensial pribadi. Untuk rancangan dan urutan kerja lengkap, lihat [Dokumentasi Perancangan Annisa](./docs/perancangan-annisa/Dokumentasi.md).
+Login web staf menggunakan username. `StafSeeder` menyediakan akun di atas; pelanggan tetap memiliki nomor HP untuk alur pelanggan yang direncanakan.
 
-Web staf memakai Blade: Kasir menangani pesanan, status transaksi, struk, dan reset password pelanggan; Manajer mengelola bahan, menu, resep, stok, HPP, serta laporan. Akun staf baru diarahkan untuk mengganti password saat pertama masuk. Integrasi harga Supplier bersifat opsional dan memakai `SUPPLIER_URL` serta `SUPPLIER_API_KEY` dari `.env`; server mengirim header `X-API-Key` dan mengharapkan daftar `{ "nama": "...", "harga": 0 }`.
+## 6) Letak berkas
 
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+| Isi | Lokasi |
+|---|---|
+| Migration database | `database/migrations/` |
+| Seeder | `database/seeders/` |
+| Business service | `app/Services/` |
+| Controller web | `app/Http/Controllers/Web/` |
+| View Blade | `resources/views/` |
+| Route web dan API | `routes/web.php`, `routes/api.php` |
+| Dokumen perancangan | `docs/` |
+| ERD hasil pemetaan migration | `docs/erd/erd.md` |
+| Salinan diagram dan skenario UML | `docs/uml/` |
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 7) Keputusan saya
 
-## About Laravel
+- Detail pesanan menyimpan snapshot `harga_saat_transaksi`, `nama_menu`, dan `resep_saat_transaksi`; perubahan harga atau resep kemudian tidak mengubah data snapshot yang sudah tersimpan.
+- Pengembalian stok saat pembatalan memakai resep saat ini; bila resep diubah setelah pesanan dibuat, jumlah yang kembali bisa berbeda.
+- Satuan bahan yang diterima adalah satuan dasar `g`, `ml`, dan `pcs`.
+- Menu menjadi `Habis` ketika stok salah satu bahan tidak cukup untuk membuat satu porsi. Menu `Nonaktif` tidak diaktifkan otomatis.
+- Bahan ditandai menipis jika stoknya kurang dari atau sama dengan batas minimum.
+- Jika sinkronisasi Supplier gagal, sistem melaporkan kegagalan dan tidak mengganti harga yang tersimpan.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 8) Self-check 14 butir
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Status di bawah merujuk pada kode yang ada di repo ini. “Sebagian” berarti ada bagian kriteria yang belum cocok dengan implementasi saat ini.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Butir | Status | Bukti/lokasi kode |
+|---:|---|---|
+| 1. Kelola bahan, menu, dan resep | Selesai | `app/Http/Controllers/Web/ManajerController.php`, `routes/web.php`, `resources/views/manajer/` |
+| 2. Stok masuk, batas minimum, dan bahan menipis | Selesai | `ManajerController.php`, `resources/views/manajer/stok-masuk.blade.php`, `batas-minimum.blade.php` |
+| 3. Pesanan multi-item mengurangi stok; menu nonaktif/tanpa resep ditolak | Selesai | `app/Services/PesananService.php`, `tests/Feature/WebWorkflowTest.php` |
+| 4. Kekurangan stok dan kebutuhan bahan gabungan ditangani | Selesai | `PesananService.php`, `tests/Feature/WebWorkflowTest.php` |
+| 5. Status menu otomatis mengikuti ketersediaan stok | Selesai | `app/Services/MenuStatusService.php` |
+| 6. Status berjenjang; pembatalan hanya saat `Baru` melalui route Kasir dan mengembalikan stok | Selesai | `PesananService.php`, `app/Http/Controllers/Web/PesananController.php`, `routes/web.php` |
+| 7. Struk, service 5%, pajak 10% dari subtotal + service, dan snapshot harga | Selesai | `app/Services/PesananService.php` |
+| 8. HPP dan margin | Selesai | `app/Services/HppService.php`, `ManajerController.php`, `resources/views/manajer/hpp-margin.blade.php` |
+| 9. Laporan dan hak akses per peran | Selesai | `ManajerController.php`, `app/Http/Middleware/CekPeran.php`, `routes/web.php` |
+| 10. Impor CSV melalui `impor:data-awal` | Belum | Command impor belum tersedia di `app/Console/Commands/`. |
+| 11. Sinkronisasi harga Supplier dan fallback | Selesai | `app/Services/SupplierService.php`, `config/services.php`, `ManajerController.php` |
+| 12. Akun pelanggan pada APK | Belum | Registrasi/login pelanggan dan aplikasi Android belum tersedia. |
+| 13. Pemesanan dari APK dan pembatasan satu pesanan `Baru` per pelanggan | Belum | Endpoint pelanggan dan aplikasi Android belum tersedia. |
+| 14. Pelanggan melihat status dan struk pesanan miliknya | Belum | Endpoint pelanggan dan aplikasi Android belum tersedia. |
 
-## Learning Laravel
+## 9) Belum selesai
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- APK Android dan alur pelanggan melalui aplikasi.
+- REST API pelanggan.
+- Perintah `impor:data-awal`; menunggu data CSV dari klien.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 10) Referensi dan bantuan
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- Dokumen rancangan: `docs/perancangan-annisa/Dokumentasi.md`
+- Diagram dan skenario UML: `docs/uml/`
+- ERD berdasarkan migration repo: `docs/erd/erd.md`
+- Dokumentasi Laravel 9: <https://laravel.com/docs/9.x>
+- Tes proyek: `php artisan test`
