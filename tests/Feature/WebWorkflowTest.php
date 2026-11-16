@@ -9,6 +9,8 @@ use App\Models\Resep;
 use App\Models\User;
 use App\Services\PesananService;
 use App\Services\SupplierService;
+use Database\Seeders\DemoSeeder;
+use Database\Seeders\KategoriMenuSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Database\Schema\Blueprint;
@@ -48,6 +50,12 @@ class WebWorkflowTest extends TestCase
             $table->string('kategori')->default('Kopi');
             $table->decimal('harga_jual', 12, 2);
             $table->string('status');
+            $table->timestamps();
+        });
+        Schema::create('kategori_menu', function (Blueprint $table) {
+            $table->id();
+            $table->string('kode_kategori')->unique();
+            $table->string('nama_kategori')->unique();
             $table->timestamps();
         });
         Schema::create('resep', function (Blueprint $table) {
@@ -127,6 +135,33 @@ class WebWorkflowTest extends TestCase
 
         $this->assertSame(500.0, (float) $bahan->fresh()->stok);
         $this->assertSame('Dibatalkan', $pesanan->fresh()->status);
+    }
+
+    public function test_csv_import_converts_units_matches_recipe_typo_and_is_idempotent(): void
+    {
+        $this->seed(KategoriMenuSeeder::class);
+        $this->artisan('impor:data-awal')->assertExitCode(0);
+
+        $this->assertSame(20, Bahan::count());
+        $this->assertSame(14, Menu::count());
+        $this->assertSame(63, Resep::count());
+        $this->assertSame('Minuman', Menu::where('nama_menu', 'Espresso')->value('kategori'));
+        $this->assertSame(5000.0, (float) Bahan::where('nama_bahan', 'Biji kopi arabika')->value('stok'));
+        $this->assertSame(180.0, (float) Bahan::where('nama_bahan', 'Biji kopi arabika')->value('harga_per_satuan'));
+
+        $flatWhite = Menu::where('nama_menu', 'Flat White')->firstOrFail();
+        $arabika = Bahan::where('nama_bahan', 'Biji kopi arabika')->firstOrFail();
+        $this->assertSame(18.0, (float) Resep::where('menu_id', $flatWhite->id)->where('bahan_id', $arabika->id)->value('takaran'));
+        $this->assertSame(4, Resep::where('menu_id', Menu::where('nama_menu', 'Latte')->value('id'))->count());
+        $this->assertSame(6, Resep::where('menu_id', Menu::where('nama_menu', 'Mocha')->value('id'))->count());
+
+        $this->seed(DemoSeeder::class);
+        $this->assertSame(300.0, (float) Bahan::where('nama_bahan', 'Susu UHT')->value('stok'));
+
+        $this->artisan('impor:data-awal')->assertExitCode(0);
+        $this->assertSame(20, Bahan::count());
+        $this->assertSame(14, Menu::count());
+        $this->assertSame(63, Resep::count());
     }
 
     public function test_cancellation_restores_stock_using_the_current_recipe(): void

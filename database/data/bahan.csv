@@ -1,0 +1,21 @@
+kode,nama_bahan,stok_awal,satuan,harga_per_satuan
+BHN-001,Biji kopi arabika,5,kg,180000
+BHN-002,Biji kopi robusta,3,kg,120000
+BHN-003,Susu UHT,20,liter,18000
+BHN-004,Gula pasir,5,kg,16000
+BHN-005,Gula aren cair,2,liter,45000
+BHN-006,Sirup karamel,1000,ml,85
+BHN-007,Cokelat bubuk,1.5,kg,95000
+BHN-008,Matcha bubuk,500,g,420
+BHN-009,Teh celup,100,pcs,800
+BHN-010,Lemon,30,pcs,3000
+BHN-011,Es batu,10,kg,4000
+BHN-012,Roti tawar,40,pcs,1500
+BHN-013,Keju slice,50,pcs,2500
+BHN-014,Mentega,1000,g,60
+BHN-015,Kentang beku,5,kg,38000
+BHN-016,Gelas 12 oz,200,pcs,450
+BHN-017,Gelas 16 oz,200,pcs,550
+BHN-018,Tutup gelas,400,pcs,150
+BHN-019,Sedotan,300,pcs,100
+BHN-020,Whipped cream,500,ml,70

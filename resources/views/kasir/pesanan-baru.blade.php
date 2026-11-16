@@ -16,7 +16,7 @@
                 <label class="search-wrap"><span class="sr-only">Cari menu</span><input id="menu-search" type="search" placeholder="Cari menu..."></label>
             </div>
             <div class="category-filters" role="group" aria-label="Filter kategori">
-                @foreach (['Semua', 'Kopi', 'Non-kopi', 'Makanan'] as $kategori)
+                @foreach (['Semua', 'Minuman', 'Makanan', 'Kopi', 'Non-kopi'] as $kategori)
                     <button class="category-filter {{ $loop->first ? 'active' : '' }}" type="button" data-category-filter="{{ $kategori }}">{{ $kategori }}</button>
                 @endforeach
             </div>

@@ -1,0 +1,15 @@
+kode,nama_menu,kategori,harga_jual
+MNU-001,Espresso,Minuman,18000
+MNU-002,Americano,Minuman,22000
+MNU-003,Latte,Minuman,28000
+MNU-004,Cappuccino,Minuman,28000
+MNU-005,Flat White,Minuman,30000
+MNU-006,Kopi Susu Gula Aren,Minuman,26000
+MNU-007,Mocha,Minuman,32000
+MNU-008,Matcha Latte,Minuman,32000
+MNU-009,Teh Lemon,Minuman,18000
+MNU-010,Cokelat Panas,Minuman,26000
+MNU-011,Es Teh Manis,Minuman,12000
+MNU-012,Roti Bakar Cokelat,Makanan,20000
+MNU-013,Roti Bakar Keju,Makanan,22000
+MNU-014,Kentang Goreng,Makanan,25000

@@ -2,7 +2,7 @@
 
 ## 1) Ringkasan
 
-Proyek UKK RPL Soal 3 Varian C ini adalah aplikasi website internal Kedai Kopi Senja. Kasir mengelola pesanan dan struk; Manajer mengelola bahan, menu, resep, stok, harga, serta laporan. Fokus repo saat ini adalah website staf. APK Android, REST API pelanggan, dan impor CSV belum tersedia.
+Proyek UKK RPL Soal 3 Varian C ini adalah aplikasi website internal Kedai Kopi Senja. Kasir mengelola pesanan dan struk; Manajer mengelola bahan, menu, resep, stok, harga, serta laporan. Fokus repo saat ini adalah website staf. APK Android dan REST API pelanggan belum tersedia.
 
 ## 2) Teknologi
 
@@ -28,6 +28,8 @@ Proyek UKK RPL Soal 3 Varian C ini adalah aplikasi website internal Kedai Kopi S
    ```powershell
    php artisan key:generate
    php artisan migrate
+   php artisan db:seed --class=KategoriMenuSeeder
+   php artisan impor:data-awal
    php artisan db:seed --class=StafSeeder
    php artisan db:seed --class=DemoSeeder
    npm install
@@ -60,6 +62,9 @@ Login web staf menggunakan username. `StafSeeder` menyediakan akun di atas; pela
 |---|---|
 | Migration database | `database/migrations/` |
 | Seeder | `database/seeders/` |
+| CSV data awal | `database/data/` |
+| CSV master dan demo | `database/data-seeder-csv/` |
+| Command impor CSV | `app/Console/Commands/ImporDataAwal.php` |
 | Business service | `app/Services/` |
 | Controller web | `app/Http/Controllers/Web/` |
 | View Blade | `resources/views/` |
@@ -73,6 +78,8 @@ Login web staf menggunakan username. `StafSeeder` menyediakan akun di atas; pela
 - Detail pesanan menyimpan snapshot `harga_saat_transaksi`, `nama_menu`, dan `resep_saat_transaksi`; perubahan harga atau resep kemudian tidak mengubah data snapshot yang sudah tersimpan.
 - Pengembalian stok saat pembatalan memakai resep saat ini; bila resep diubah setelah pesanan dibuat, jumlah yang kembali bisa berbeda.
 - Satuan bahan yang diterima adalah satuan dasar `g`, `ml`, dan `pcs`.
+- Impor CSV mengubah `kg` ke `g` dan `liter` ke `ml`; harga per satuan dibagi dengan faktor konversinya.
+- Pencocokan nama bahan resep dilakukan persis (tanpa membedakan kapital/spasi tepi) terlebih dahulu. Jika tidak cocok, `similar_text` hanya dipakai untuk satu kandidat terbaik dengan kemiripan minimal 80%; kandidat yang hilang atau ambigu dilewati dan dilaporkan.
 - Menu menjadi `Habis` ketika stok salah satu bahan tidak cukup untuk membuat satu porsi. Menu `Nonaktif` tidak diaktifkan otomatis.
 - Bahan ditandai menipis jika stoknya kurang dari atau sama dengan batas minimum.
 - Jika sinkronisasi Supplier gagal, sistem melaporkan kegagalan dan tidak mengganti harga yang tersimpan.
@@ -92,7 +99,7 @@ Status di bawah merujuk pada kode yang ada di repo ini. “Sebagian” berarti a
 | 7. Struk, service 5%, pajak 10% dari subtotal + service, dan snapshot harga | Selesai | `app/Services/PesananService.php` |
 | 8. HPP dan margin | Selesai | `app/Services/HppService.php`, `ManajerController.php`, `resources/views/manajer/hpp-margin.blade.php` |
 | 9. Laporan dan hak akses per peran | Selesai | `ManajerController.php`, `app/Http/Middleware/CekPeran.php`, `routes/web.php` |
-| 10. Impor CSV melalui `impor:data-awal` | Belum | Command impor belum tersedia di `app/Console/Commands/`. |
+| 10. Impor CSV melalui `impor:data-awal` | Selesai | `app/Console/Commands/ImporDataAwal.php`, `database/data/`, `database/seeders/KategoriMenuSeeder.php`, `database/seeders/DemoSeeder.php` |
 | 11. Sinkronisasi harga Supplier dan fallback | Selesai | `app/Services/SupplierService.php`, `config/services.php`, `ManajerController.php` |
 | 12. Akun pelanggan pada APK | Belum | Registrasi/login pelanggan dan aplikasi Android belum tersedia. |
 | 13. Pemesanan dari APK dan pembatasan satu pesanan `Baru` per pelanggan | Belum | Endpoint pelanggan dan aplikasi Android belum tersedia. |
@@ -102,7 +109,6 @@ Status di bawah merujuk pada kode yang ada di repo ini. “Sebagian” berarti a
 
 - APK Android dan alur pelanggan melalui aplikasi.
 - REST API pelanggan.
-- Perintah `impor:data-awal`; menunggu data CSV dari klien.
 
 ## 10) Referensi dan bantuan
 
