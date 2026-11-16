@@ -10,7 +10,7 @@
             <h2>Stok masuk baru</h2>
             <p class="panel-hint">Jumlah harus lebih dari 0.</p>
             @if ($bahans->isEmpty())
-                <p class="empty-state">Tambahkan bahan sebelum mencatat stok masuk.</p>
+                <p class="empty-state">Tidak ada bahan aktif. Aktifkan bahan sebelum mencatat stok masuk.</p>
             @else
                 <form method="POST" action="{{ route('manajer.stok-masuk.simpan') }}" class="stack-form">
                     @csrf

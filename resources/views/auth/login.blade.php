@@ -8,14 +8,14 @@
     <style>
         :root {
             color-scheme: light;
-            --ink: #171717;
-            --muted: #777;
-            --line: #222;
-            --paper: #fff;
-            --pink: #111;
-            --pink-dark: #333;
-            --pink-pale: #fff;
-            --error: #111;
+            --ink: #34251d;
+            --muted: #78685b;
+            --line: #dfcdb9;
+            --paper: #fffaf4;
+            --coffee: #70452d;
+            --coffee-dark: #4c2f20;
+            --coffee-pale: #f3e8dc;
+            --error: #a34a3d;
         }
 
         * { box-sizing: border-box; }
@@ -25,7 +25,7 @@
             margin: 0;
             place-items: center;
             padding: 32px 18px;
-            background: #fff;
+            background: #f5eee6;
             color: var(--ink);
             font-family: "DM Sans", "Segoe UI", sans-serif;
         }
@@ -61,15 +61,15 @@
             width: 100%;
             min-height: 47px;
             padding: 10px 13px;
-            border: 1px solid #999;
+            border: 1px solid #c6b6a6;
             border-radius: 4px;
             outline: none;
             background: var(--paper);
             color: var(--ink);
         }
         .field input:focus {
-            border-color: var(--pink);
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, .08);
+            border-color: #a9682f;
+            box-shadow: 0 0 0 3px rgb(169 104 47 / 15%);
         }
         .field input[aria-invalid="true"] { border-color: var(--error); }
         .submit-button {
@@ -78,12 +78,12 @@
             margin-top: 9px;
             border: 0;
             border-radius: 4px;
-            background: var(--pink);
+            background: var(--coffee);
             color: #fff;
             cursor: pointer;
             font-weight: 700;
         }
-        .submit-button:hover { background: var(--pink-dark); }
+        .submit-button:hover { background: var(--coffee-dark); }
         .error-slot {
             min-height: 77px;
             margin-top: 23px;
@@ -91,8 +91,8 @@
         .error-message {
             margin: 0;
             padding: 17px 12px;
-            border: 1px dashed var(--pink);
-            background: var(--pink-pale);
+            border: 1px dashed var(--error);
+            background: #fff2ec;
             color: var(--error);
             font-size: 14px;
             text-align: center;

@@ -39,6 +39,7 @@ class WebWorkflowTest extends TestCase
             $table->decimal('batas_minimum', 12, 3)->default(0);
             $table->decimal('harga_per_satuan', 12, 2)->default(0);
             $table->dateTime('harga_diperbarui_at')->nullable();
+            $table->string('status')->default('Aktif');
             $table->timestamps();
         });
         Schema::create('menu', function (Blueprint $table) {
@@ -346,6 +347,7 @@ class WebWorkflowTest extends TestCase
 
         $bahan = Bahan::where('nama_bahan', 'Susu UHT')->firstOrFail();
         $this->assertSame(0.0, (float) $bahan->stok);
+        $this->assertSame('Aktif', $bahan->status);
 
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
         Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 20]);
@@ -361,7 +363,7 @@ class WebWorkflowTest extends TestCase
         $this->assertDatabaseHas('stok_masuk', ['bahan_id' => $bahan->id, 'user_id' => $manager->id]);
     }
 
-    public function test_manager_can_update_material_data_without_editing_stock_directly(): void
+    public function test_manager_can_toggle_material_status_without_changing_existing_recipe_or_stock_history(): void
     {
         $manager = User::create([
             'nama' => 'Manajer',
@@ -370,17 +372,152 @@ class WebWorkflowTest extends TestCase
             'role' => 'Manajer',
         ]);
         $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 50]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
+        DB::table('stok_masuk')->insert([
+            'bahan_id' => $bahan->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-11-15',
+            'jumlah' => 50,
+        ]);
 
         $this->actingAs($manager)
-            ->put(route('manajer.bahan.update', $bahan), [
-                'nama_bahan' => 'Susu UHT',
-                'satuan' => 'ml',
-                'batas_minimum' => 10,
-                'harga_per_satuan' => 25,
-            ])
+            ->get(route('manajer.bahan'))
+            ->assertOk()
+            ->assertSee('Nonaktifkan')
+            ->assertDontSee('Ubah')
+            ->assertDontSee('Hapus');
+
+        $this->patch(route('manajer.bahan.status', $bahan))
             ->assertRedirect();
 
-        $this->assertSame('Susu UHT', $bahan->fresh()->nama_bahan);
-        $this->assertSame(50.0, (float) $bahan->fresh()->stok);
+        $this->assertSame('Nonaktif', $bahan->fresh()->status);
+        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
+        $this->assertDatabaseHas('stok_masuk', ['bahan_id' => $bahan->id]);
+
+        $this->post(route('manajer.resep.simpan'), [
+            'menu_id' => $menu->id,
+            'bahan' => [$bahan->id => 10],
+        ])->assertRedirect();
+        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
+
+        $this->patch(route('manajer.bahan.status', $bahan))
+            ->assertRedirect();
+        $this->assertSame('Aktif', $bahan->fresh()->status);
+    }
+
+    public function test_inactive_material_cannot_be_added_to_a_new_recipe_or_stock_entry(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'status' => 'Nonaktif']);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
+        $this->actingAs($manager);
+
+        $this->get(route('manajer.menu', ['menu_id' => $menu->id]))
+            ->assertOk()
+            ->assertSee('Tidak ada bahan aktif')
+            ->assertDontSee('data-name="Susu"');
+        $this->get(route('manajer.stok-masuk'))
+            ->assertOk()
+            ->assertSee('Tidak ada bahan aktif')
+            ->assertDontSee('Susu');
+
+        $this->from(route('manajer.menu', ['menu_id' => $menu->id]))
+            ->post(route('manajer.resep.simpan'), [
+                'menu_id' => $menu->id,
+                'bahan' => [$bahan->id => 10],
+            ])
+            ->assertSessionHasErrors('bahan');
+        $this->from(route('manajer.stok-masuk'))
+            ->post(route('manajer.stok-masuk.simpan'), [
+                'bahan_id' => $bahan->id,
+                'tanggal' => '2026-11-15',
+                'jumlah' => 10,
+            ])
+            ->assertSessionHasErrors('bahan_id');
+    }
+
+    public function test_manager_can_create_menu_and_add_its_recipe_from_the_combined_page(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create([
+            'nama_bahan' => 'Susu',
+            'satuan' => 'ml',
+            'stok' => 100,
+        ]);
+        $this->actingAs($manager);
+
+        $this->post(route('manajer.menu.simpan'), [
+            'nama_menu' => 'Latte',
+            'kategori' => 'Kopi',
+            'harga_jual' => 25000,
+        ])->assertSessionHasNoErrors();
+
+        $menu = Menu::where('nama_menu', 'Latte')->firstOrFail();
+        $menuUrl = route('manajer.menu', ['menu_id' => $menu->id]);
+        $this->assertSame('Habis', $menu->status);
+
+        $this->get($menuUrl)
+            ->assertOk()
+            ->assertSee('Formula resep')
+            ->assertSeeInOrder(['Tambah menu', 'Formula resep'])
+            ->assertSee('Resep belum dibuat untuk menu ini.');
+
+        $this->from($menuUrl)
+            ->post(route('manajer.resep.simpan'), [
+                'menu_id' => $menu->id,
+                'bahan' => [],
+            ])
+            ->assertRedirect($menuUrl)
+            ->assertSessionHasErrors('bahan');
+
+        $this->post(route('manajer.resep.simpan'), [
+            'menu_id' => $menu->id,
+            'bahan' => [$bahan->id => 20],
+        ])->assertRedirect(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder');
+
+        $this->assertDatabaseHas('resep', [
+            'menu_id' => $menu->id,
+            'bahan_id' => $bahan->id,
+            'takaran' => 20,
+        ]);
+        $this->assertSame('Aktif', $menu->fresh()->status);
+        $this->get($menuUrl)
+            ->assertOk()
+            ->assertSee('1 bahan')
+            ->assertDontSee('Resep belum dibuat untuk menu ini.');
+    }
+
+    public function test_manager_can_save_recipe_without_stock_and_receives_availability_message(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 0]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
+
+        $this->actingAs($manager)
+            ->post(route('manajer.resep.simpan'), [
+                'menu_id' => $menu->id,
+                'bahan' => [$bahan->id => 20],
+            ])
+            ->assertRedirect(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder')
+            ->assertSessionHas('success', 'Resep berhasil disimpan, tetapi status menu tetap Habis karena stok bahan belum mencukupi.');
+
+        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
+        $this->assertSame('Habis', $menu->fresh()->status);
     }
 }

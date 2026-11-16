@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell">
+    <div class="app-shell {{ request()->routeIs('manajer.bahan', 'manajer.menu', 'manajer.resep') ? 'manager-coffee-page' : '' }}">
         <aside class="sidebar" aria-label="Navigasi utama">
             <a class="brand" href="{{ route('dashboard') }}">
                 <span class="brand-mark" aria-hidden="true">S</span>
@@ -30,8 +30,7 @@
                 <div class="nav-label">Operasional</div>
                 <nav class="nav-list">
                     <a class="nav-link {{ request()->routeIs('manajer.bahan') ? 'active' : '' }}" href="{{ route('manajer.bahan') }}"><span class="nav-icon">&#9671;</span>Bahan</a>
-                    <a class="nav-link {{ request()->routeIs('manajer.menu') ? 'active' : '' }}" href="{{ route('manajer.menu') }}"><span class="nav-icon">&#9634;</span>Menu</a>
-                    <a class="nav-link {{ request()->routeIs('manajer.resep') ? 'active' : '' }}" href="{{ route('manajer.resep') }}"><span class="nav-icon">&#9776;</span>Resep</a>
+                    <a class="nav-link {{ request()->routeIs('manajer.menu', 'manajer.resep') ? 'active' : '' }}" href="{{ route('manajer.menu') }}"><span class="nav-icon">&#9634;</span>Menu &amp; Resep</a>
                     <a class="nav-link {{ request()->routeIs('manajer.stok-masuk') ? 'active' : '' }}" href="{{ route('manajer.stok-masuk') }}"><span class="nav-icon">&#8595;</span>Stok Masuk</a>
                     <a class="nav-link {{ request()->routeIs('manajer.batas-minimum') ? 'active' : '' }}" href="{{ route('manajer.batas-minimum') }}"><span class="nav-icon">&#9888;</span>Batas Minimum</a>
                     <a class="nav-link {{ request()->routeIs('manajer.hpp-margin*') ? 'active' : '' }}" href="{{ route('manajer.hpp-margin') }}"><span class="nav-icon">&#9636;</span>HPP &amp; Margin</a>

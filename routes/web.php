@@ -37,7 +37,7 @@ Route::middleware(['auth', 'wajib-ganti-password'])->group(function () {
     Route::middleware('peran:Manajer')->prefix('manajer')->name('manajer.')->group(function () {
         Route::get('/bahan', [ManajerController::class, 'bahan'])->name('bahan');
         Route::post('/bahan', [ManajerController::class, 'simpanBahan'])->name('bahan.simpan');
-        Route::put('/bahan/{bahan}', [ManajerController::class, 'simpanBahan'])->name('bahan.update');
+        Route::patch('/bahan/{bahan}/status', [ManajerController::class, 'ubahStatusBahan'])->name('bahan.status');
         Route::get('/menu', [ManajerController::class, 'menu'])->name('menu');
         Route::post('/menu', [ManajerController::class, 'simpanMenu'])->name('menu.simpan');
         Route::put('/menu/{menu}', [ManajerController::class, 'simpanMenu'])->name('menu.update');

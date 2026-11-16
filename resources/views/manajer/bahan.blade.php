@@ -10,7 +10,7 @@
             <div class="panel-head"><div><h2>Daftar bahan</h2><p class="panel-hint">Stok dan harga per satuan bahan.</p></div></div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Bahan</th><th>Satuan</th><th>Stok</th><th>Harga/satuan</th><th>Aksi</th></tr></thead>
+                    <thead><tr><th>Bahan</th><th>Satuan</th><th>Stok</th><th>Harga/satuan</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody>
                     @forelse ($bahans as $bahan)
                         <tr>
@@ -18,22 +18,18 @@
                             <td>{{ $bahan->satuan }}</td>
                             <td>{{ number_format($bahan->stok, 3, ',', '.') }}</td>
                             <td>Rp{{ number_format($bahan->harga_per_satuan, 0, ',', '.') }}</td>
+                            <td><span class="badge badge-{{ $bahan->status === 'Aktif' ? 'green' : 'muted' }}">{{ $bahan->status }}</span></td>
                             <td>
-                                <details class="edit-details">
-                                    <summary class="button button-small button-secondary">Ubah</summary>
-                                    <form class="stack-form" method="POST" action="{{ route('manajer.bahan.update', $bahan) }}">
-                                        @csrf @method('PUT')
-                                        <label>Nama bahan<input name="nama_bahan" value="{{ $bahan->nama_bahan }}" required></label>
-                                        <label>Satuan<select name="satuan">@foreach (['g', 'ml', 'pcs'] as $satuan)<option @selected($bahan->satuan === $satuan)>{{ $satuan }}</option>@endforeach</select></label>
-                                        <label>Batas minimum<input type="number" name="batas_minimum" value="{{ $bahan->batas_minimum }}" min="0" step="0.001" required></label>
-                                        <label>Harga/satuan<input type="number" name="harga_per_satuan" value="{{ $bahan->harga_per_satuan }}" min="0" step="0.01" required></label>
-                                        <button class="button button-primary button-small" type="submit">Simpan</button>
-                                    </form>
-                                </details>
+                                <form method="POST" action="{{ route('manajer.bahan.status', $bahan) }}">
+                                    @csrf @method('PATCH')
+                                    <button class="button button-small {{ $bahan->status === 'Aktif' ? 'button-secondary' : 'button-primary' }}" type="submit">
+                                        {{ $bahan->status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan' }}
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="empty-state">Belum ada bahan.</td></tr>
+                        <tr><td colspan="6" class="empty-state">Belum ada bahan.</td></tr>
                     @endforelse
                     </tbody>
                 </table>

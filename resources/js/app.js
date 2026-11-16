@@ -155,10 +155,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const materialSelect = document.getElementById('recipe-material');
     const amountInput = document.getElementById('recipe-amount');
     const rows = document.getElementById('recipe-rows');
+    const emptyState = document.getElementById('recipe-empty-state');
+    const menuId = form.querySelector('[name="menu_id"]').value;
+    const recipeBadge = document.querySelector(`[data-recipe-status="${menuId}"]`);
+
+    function updateRecipeState() {
+        if (!emptyState) return;
+
+        const materialCount = rows.querySelectorAll('[data-recipe-row]:not([hidden])').length;
+        emptyState.textContent = materialCount > 0
+            ? 'Bahan sudah ditambahkan. Klik Simpan Resep untuk menyimpannya.'
+            : 'Resep belum dibuat untuk menu ini. Tambahkan minimal satu bahan dan takaran untuk membuat formulanya.';
+        if (recipeBadge) {
+            recipeBadge.textContent = materialCount > 0 ? `Draf: ${materialCount} bahan` : 'Belum ada resep';
+        }
+    }
 
     function updateAvailableMaterials() {
         const usedIds = new Set(
-            [...rows.querySelectorAll('[data-recipe-row:not([hidden])]')].map((row) => row.dataset.bahanId)
+            [...rows.querySelectorAll('[data-recipe-row]:not([hidden])')].map((row) => row.dataset.bahanId)
         );
         [...materialSelect.options].forEach((option) => {
             if (option.value) option.disabled = usedIds.has(option.value);
@@ -170,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.querySelector('input').value = '';
         row.hidden = true;
         updateAvailableMaterials();
+        updateRecipeState();
     }
 
     rows.querySelectorAll('[data-remove-recipe]').forEach((button) => {
@@ -223,7 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
         materialSelect.value = '';
         amountInput.value = '';
         updateAvailableMaterials();
+        updateRecipeState();
     });
 
     updateAvailableMaterials();
+    updateRecipeState();
 });

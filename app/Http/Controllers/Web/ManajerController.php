@@ -23,7 +23,7 @@ class ManajerController extends Controller
         return view('manajer.bahan', ['bahans' => Bahan::orderBy('nama_bahan')->paginate(20)]);
     }
 
-    public function simpanBahan(Request $request, MenuStatusService $menuStatus, ?Bahan $bahan = null): RedirectResponse
+    public function simpanBahan(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'nama_bahan' => ['required', 'string', 'max:255'],
@@ -32,64 +32,69 @@ class ManajerController extends Controller
             'harga_per_satuan' => ['required', 'numeric', 'min:0'],
         ]);
         $data['nama_bahan'] = trim($data['nama_bahan']);
-        if (! $bahan || (float) $bahan->harga_per_satuan !== (float) $data['harga_per_satuan']) {
-            $data['harga_diperbarui_at'] = now();
-        }
-
-        if ($bahan && Bahan::where('nama_bahan', $data['nama_bahan'])->where('id', '<>', $bahan->id)->exists()) {
-            return back()->withErrors(['nama_bahan' => 'Nama bahan sudah digunakan.'])->withInput();
-        }
-        if (! $bahan && Bahan::where('nama_bahan', $data['nama_bahan'])->exists()) {
+        if (Bahan::where('nama_bahan', $data['nama_bahan'])->exists()) {
             return back()->withErrors(['nama_bahan' => 'Nama bahan sudah digunakan.'])->withInput();
         }
 
-        if ($bahan) {
-            $bahan->update($data);
-        } else {
-            $bahan = Bahan::create($data + ['stok' => 0]);
-        }
-
-        $menuStatus->segarkan($bahan->resep()->pluck('menu_id')->all());
+        Bahan::create($data + [
+            'stok' => 0,
+            'status' => 'Aktif',
+            'harga_diperbarui_at' => now(),
+        ]);
 
         return back()->with('success', 'Data bahan berhasil disimpan.');
     }
 
-    public function menu(): View
+    public function ubahStatusBahan(Bahan $bahan): RedirectResponse
     {
-        return view('manajer.menu', ['menus' => Menu::withCount('resep')->orderBy('nama_menu')->paginate(20)]);
+        $bahan->status = $bahan->status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+        $bahan->save();
+
+        return back()->with('success', "Bahan {$bahan->nama_bahan} sekarang {$bahan->status}.");
+    }
+
+    public function menu(Request $request): View
+    {
+        $recipeMenus = Menu::with('resep.bahan')->orderBy('nama_menu')->get();
+        $selectedMenu = $recipeMenus->firstWhere('id', (int) $request->query('menu_id')) ?? $recipeMenus->first();
+
+        return view('manajer.menu', [
+            'menus' => Menu::withCount('resep')->orderBy('nama_menu')->paginate(20),
+            'recipeMenus' => $recipeMenus,
+            'bahans' => Bahan::orderBy('nama_bahan')->get(),
+            'bahansAktif' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
+            'selectedMenu' => $selectedMenu,
+        ]);
     }
 
     public function simpanMenu(Request $request, MenuStatusService $menuStatus, ?Menu $menu = null): RedirectResponse
     {
+        $menuBaru = $menu === null;
         $data = $request->validate([
             'nama_menu' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'in:Kopi,Non-kopi,Makanan'],
             'harga_jual' => ['required', 'numeric', 'min:0'],
-            'status' => ['required', 'in:Aktif,Habis,Nonaktif'],
+            'status' => [$menuBaru ? 'sometimes' : 'required', 'in:Aktif,Habis,Nonaktif'],
         ]);
         $data['nama_menu'] = trim($data['nama_menu']);
 
         if ($menu) {
             $menu->update($data);
         } else {
-            $menu = Menu::create($data);
+            $menu = Menu::create($data + ['status' => 'Habis']);
         }
 
         $menuStatus->segarkan([$menu->id]);
 
-        return back()->with('success', 'Data menu berhasil disimpan.');
+        return redirect()->to(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder')
+            ->with('success', $menuBaru
+                ? 'Menu berhasil dibuat. Lengkapi resepnya di bagian Formula Resep.'
+                : 'Data menu berhasil disimpan.');
     }
 
     public function resep(Request $request): View
     {
-        $menus = Menu::with('resep.bahan')->orderBy('nama_menu')->get();
-        $selectedMenu = $menus->firstWhere('id', (int) $request->query('menu_id')) ?? $menus->first();
-
-        return view('manajer.resep', [
-            'menus' => $menus,
-            'bahans' => Bahan::orderBy('nama_bahan')->get(),
-            'selectedMenu' => $selectedMenu,
-        ]);
+        return $this->menu($request);
     }
 
     public function simpanResep(Request $request, MenuStatusService $menuStatus): RedirectResponse
@@ -110,8 +115,16 @@ class ManajerController extends Controller
         if ($resep->isEmpty()) {
             return back()->withErrors(['bahan' => 'Tambahkan minimal satu bahan ke resep.'])->withInput();
         }
-        if (Bahan::whereIn('id', $resep->pluck('bahan_id'))->count() !== $resep->count()) {
+        $bahanIds = $resep->pluck('bahan_id')->unique();
+        if (Bahan::whereIn('id', $bahanIds)->count() !== $bahanIds->count()) {
             return back()->withErrors(['bahan' => 'Salah satu bahan resep tidak ditemukan.'])->withInput();
+        }
+        $bahanNonaktifBaru = Bahan::whereIn('id', $bahanIds)
+            ->where('status', 'Nonaktif')
+            ->pluck('id')
+            ->diff(Resep::where('menu_id', $data['menu_id'])->whereIn('bahan_id', $bahanIds)->pluck('bahan_id'));
+        if ($bahanNonaktifBaru->isNotEmpty()) {
+            return back()->withErrors(['bahan' => 'Bahan nonaktif tidak bisa ditambahkan ke resep baru.'])->withInput();
         }
 
         DB::transaction(function () use ($data, $resep, $menuStatus) {
@@ -126,13 +139,19 @@ class ManajerController extends Controller
             $menuStatus->segarkan([(int) $data['menu_id']]);
         });
 
-        return back()->with('success', 'Resep berhasil disimpan.');
+        $menu = Menu::findOrFail($data['menu_id']);
+        $pesan = $menu->status === 'Habis'
+            ? 'Resep berhasil disimpan, tetapi status menu tetap Habis karena stok bahan belum mencukupi.'
+            : 'Resep berhasil disimpan.';
+
+        return redirect()->to(route('manajer.menu', ['menu_id' => $data['menu_id']]).'#recipe-builder')
+            ->with('success', $pesan);
     }
 
     public function stokMasuk(): View
     {
         return view('manajer.stok-masuk', [
-            'bahans' => Bahan::orderBy('nama_bahan')->get(),
+            'bahans' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
             'riwayat' => StokMasuk::with('bahan', 'user')->latest('tanggal')->latest()->paginate(20),
         ]);
     }
@@ -140,7 +159,7 @@ class ManajerController extends Controller
     public function simpanStokMasuk(Request $request, MenuStatusService $menuStatus): RedirectResponse
     {
         $data = $request->validate([
-            'bahan_id' => ['required', 'exists:bahan,id'],
+            'bahan_id' => ['required', 'exists:bahan,id,status,Aktif'],
             'tanggal' => ['required', 'date'],
             'jumlah' => ['required', 'numeric', 'gt:0'],
         ]);
