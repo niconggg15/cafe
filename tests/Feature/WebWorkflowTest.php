@@ -260,6 +260,10 @@ class WebWorkflowTest extends TestCase
             ->get(route('kasir.pesanan.baru'))
             ->assertOk()
             ->assertSee('Kopi Senja')
+            ->assertSee('data-category-filter="Minuman"', false)
+            ->assertSee('data-category-filter="Makanan"', false)
+            ->assertDontSee('data-category-filter="Kopi"', false)
+            ->assertDontSee('data-category-filter="Non-kopi"', false)
             ->assertSee('type="radio" name="metode_bayar" value="Tunai"', false)
             ->assertSee('type="radio" name="metode_bayar" value="QRIS"', false)
             ->assertDontSee('HPP');
