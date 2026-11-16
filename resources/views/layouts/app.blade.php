@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell {{ request()->routeIs('manajer.bahan', 'manajer.menu', 'manajer.resep') ? 'manager-coffee-page' : '' }}">
+    <div class="app-shell {{ request()->routeIs('manajer.bahan', 'manajer.menu', 'manajer.resep') ? 'coffee-theme manager-coffee-page' : (auth()->user()->role === 'Kasir' ? 'coffee-theme cashier-coffee-page' : '') }}">
         <aside class="sidebar" aria-label="Navigasi utama">
             <a class="brand" href="{{ route('dashboard') }}">
                 <span class="brand-mark" aria-hidden="true">S</span>
