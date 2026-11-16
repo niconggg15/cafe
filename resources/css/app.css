@@ -216,6 +216,10 @@ label span { color: var(--muted); font-weight: 400; }
 .cashier-coffee-page .payment-method-options { display: flex; flex-wrap: wrap; gap: 18px; }
 .cashier-coffee-page .payment-method-options label { display: flex; align-items: center; gap: 7px; color: #5b4536; }
 .cashier-coffee-page .payment-method-options input[type="radio"] { width: 16px; min-height: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--green); }
+.cashier-coffee-page .reset-password-workspace { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); align-items: start; gap: 16px; }
+.cashier-coffee-page .reset-password-workspace > .panel { min-width: 0; }
+.cashier-coffee-page .reset-password-workspace .form-panel > h2 { margin-bottom: 6px; }
+.cashier-coffee-page .reset-password-workspace .panel-hint { margin-bottom: 12px; }
 .manager-coffee-page .edit-details[open] { border-color: var(--line); background: var(--paper); }
 .manager-menu-recipe-workspace { grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr); }
 .manager-menu-editor { display: grid; align-content: start; gap: 12px; min-width: 0; }
@@ -224,6 +228,7 @@ label span { color: var(--muted); font-weight: 400; }
     .main-content { padding: 30px 24px 40px; }
     .order-workspace { grid-template-columns: 1fr; gap: 14px; }
     .manager-workspace, .manager-workspace-wide, .orders-workspace, .receipt-workspace { grid-template-columns: 1fr; }
+    .cashier-coffee-page .reset-password-workspace { grid-template-columns: 1fr; }
     .manager-menu-recipe-workspace { grid-template-columns: 1fr; }
     .manager-form { grid-row: 1; }
     .order-panel { position: static; }

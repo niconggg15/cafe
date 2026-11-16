@@ -229,6 +229,10 @@ class WebWorkflowTest extends TestCase
             ->assertSee('type="radio" name="metode_bayar" value="QRIS"', false)
             ->assertDontSee('HPP');
 
+        $this->get(route('kasir.pesanan.index'))
+            ->assertOk()
+            ->assertDontSee('Reset password pelanggan');
+
         $pesanan = app(PesananService::class)->buat([
             'items' => [$menu->id => 1],
             'no_meja' => 1,
@@ -279,11 +283,27 @@ class WebWorkflowTest extends TestCase
             'role' => 'Pelanggan',
         ]);
 
-        $response = $this->actingAs(new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']))
-            ->post(route('kasir.reset-password.simpan'), ['no_hp' => '+62 812-3456-7890']);
+        $kasir = new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']);
+        $this->actingAs($kasir)
+            ->post(route('kasir.reset-password.simpan'), [
+                'no_hp' => '+62 812-3456-7890',
+                'aksi' => 'cari',
+            ])
+            ->assertRedirect(route('kasir.reset-password'))
+            ->assertSessionHas('kasir.reset_password.no_hp', '081234567890');
+
+        $this->get(route('kasir.reset-password'))
+            ->assertOk()
+            ->assertSee('Akun ditemukan: 081234567890');
+
+        $response = $this->post(route('kasir.reset-password.simpan'), [
+            'no_hp' => '081234567890',
+            'aksi' => 'reset',
+        ]);
 
         $response->assertRedirect(route('kasir.reset-password'))
             ->assertSessionHas('reset_pelanggan', '081234567890')
+            ->assertSessionMissing('kasir.reset_password.no_hp')
             ->assertSessionHas('password_sementara', function ($passwordSementara) use ($pelanggan) {
                 return Hash::check($passwordSementara, $pelanggan->fresh()->password);
             });
@@ -293,7 +313,24 @@ class WebWorkflowTest extends TestCase
     public function test_cashier_reset_password_rejects_invalid_phone_number(): void
     {
         $this->actingAs(new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']))
-            ->post(route('kasir.reset-password.simpan'), ['no_hp' => '0812invalid'])
+            ->post(route('kasir.reset-password.simpan'), ['no_hp' => '0812invalid', 'aksi' => 'cari'])
+            ->assertSessionHasErrors('no_hp');
+    }
+
+    public function test_cashier_cannot_reset_password_without_searching_for_account(): void
+    {
+        User::create([
+            'nama' => 'Pelanggan Uji',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('PasswordLama123'),
+            'role' => 'Pelanggan',
+        ]);
+
+        $this->actingAs(new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']))
+            ->post(route('kasir.reset-password.simpan'), [
+                'no_hp' => '081234567890',
+                'aksi' => 'reset',
+            ])
             ->assertSessionHasErrors('no_hp');
     }
 
