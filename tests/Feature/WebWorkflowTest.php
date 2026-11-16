@@ -210,7 +210,12 @@ class WebWorkflowTest extends TestCase
 
     public function test_cashier_and_manager_screens_render_with_live_laravel_data(): void
     {
-        $kasir = new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']);
+        $kasir = User::create([
+            'nama' => 'Kasir Uji',
+            'username' => 'kasir-uji',
+            'password' => Hash::make('Password123'),
+            'role' => 'Kasir',
+        ]);
         $manajer = new User(['nama' => 'Manajer Uji', 'role' => 'Manajer']);
         $bahan = Bahan::create(['nama_bahan' => 'Biji kopi', 'satuan' => 'g', 'stok' => 100]);
         $menu = Menu::create(['nama_menu' => 'Kopi Senja', 'harga_jual' => 20000, 'status' => 'Aktif']);
@@ -220,7 +225,19 @@ class WebWorkflowTest extends TestCase
             ->get(route('kasir.pesanan.baru'))
             ->assertOk()
             ->assertSee('Kopi Senja')
+            ->assertSee('type="radio" name="metode_bayar" value="Tunai"', false)
+            ->assertSee('type="radio" name="metode_bayar" value="QRIS"', false)
             ->assertDontSee('HPP');
+
+        $pesanan = app(PesananService::class)->buat([
+            'items' => [$menu->id => 1],
+            'no_meja' => 1,
+            'metode_bayar' => 'Tunai',
+        ], $kasir->id);
+        $this->actingAs($kasir)
+            ->get(route('kasir.struk', $pesanan))
+            ->assertOk()
+            ->assertSee('Struk Pesanan #0001');
 
         foreach ([
             'manajer.bahan',

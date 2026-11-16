@@ -2,7 +2,7 @@
 
 @section('title', 'Struk Pesanan')
 @section('heading')
-    Struk Pesanan #{{ $pesanan->id }}
+    Struk Pesanan #{{ str_pad($pesanan->id, 4, '0', STR_PAD_LEFT) }}
 @endsection
 @section('description', 'Rincian transaksi Kedai Kopi Senja.')
 @section('head-actions')

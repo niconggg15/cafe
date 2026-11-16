@@ -69,12 +69,13 @@
                                 @endfor
                             </select>
                         </label>
-                        <label>Metode bayar
-                            <select name="metode_bayar" required>
-                                <option value="Tunai" @selected(old('metode_bayar', 'Tunai') === 'Tunai')>Tunai</option>
-                                <option value="QRIS" @selected(old('metode_bayar') === 'QRIS')>QRIS</option>
-                            </select>
-                        </label>
+                        <fieldset class="payment-methods">
+                            <legend>Metode bayar</legend>
+                            <div class="payment-method-options">
+                                <label><input type="radio" name="metode_bayar" value="Tunai" @checked(old('metode_bayar', 'Tunai') === 'Tunai') required> Tunai</label>
+                                <label><input type="radio" name="metode_bayar" value="QRIS" @checked(old('metode_bayar') === 'QRIS') required> QRIS</label>
+                            </div>
+                        </fieldset>
                     </div>
                     <div class="totals">
                         <div><span>Subtotal</span><strong id="subtotal">Rp0</strong></div>

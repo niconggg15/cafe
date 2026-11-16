@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const serviceCharge = Math.round(subtotal * 0.05);
-        const tax = Math.round(subtotal * 0.10);
+        const tax = Math.round((subtotal + serviceCharge) * 0.10);
         document.getElementById('item-count').textContent = String(totalCount);
         document.getElementById('subtotal').textContent = rupiah(subtotal);
         document.getElementById('service-charge').textContent = rupiah(serviceCharge);
