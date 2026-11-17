@@ -566,7 +566,7 @@ class WebWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('Ubah')
             ->assertSee('Nonaktifkan')
-            ->assertSee('Tidak dapat dihapus: ada stok atau riwayat.');
+            ->assertDontSee('Tidak dapat dihapus: ada stok atau riwayat.');
 
         $this->patch(route('manajer.bahan.status', $bahan))
             ->assertRedirect();

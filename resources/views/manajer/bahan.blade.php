@@ -56,8 +56,6 @@
                                             @csrf @method('DELETE')
                                             <button class="button button-small button-danger" type="submit">Hapus</button>
                                         </form>
-                                    @else
-                                        <span class="panel-hint">Tidak dapat dihapus: ada stok atau riwayat.</span>
                                     @endif
                                 </div>
                             </td>
