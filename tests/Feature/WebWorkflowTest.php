@@ -308,6 +308,7 @@ class WebWorkflowTest extends TestCase
 
     public function test_saving_menu_refreshes_its_status_from_current_ingredient_stock(): void
     {
+        $this->seed(KategoriMenuSeeder::class);
         $bahan = Bahan::create(['nama_bahan' => 'Biji kopi', 'satuan' => 'g', 'stok' => 5]);
         $menu = Menu::create(['nama_menu' => 'Kopi Senja', 'harga_jual' => 20000, 'status' => 'Aktif']);
         Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
@@ -315,7 +316,7 @@ class WebWorkflowTest extends TestCase
         $this->actingAs(new User(['nama' => 'Manajer Uji', 'role' => 'Manajer']))
             ->put(route('manajer.menu.update', $menu), [
                 'nama_menu' => 'Kopi Senja',
-                'kategori' => 'Kopi',
+                'kategori' => 'Minuman',
                 'harga_jual' => 20000,
                 'status' => 'Aktif',
             ])
@@ -522,7 +523,11 @@ class WebWorkflowTest extends TestCase
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
         $this->actingAs($manager);
 
-        $this->get(route('manajer.menu', ['menu_id' => $menu->id]))
+        $this->get(route('manajer.menu'))
+            ->assertOk()
+            ->assertSee('Latte')
+            ->assertDontSee('data-name="Susu"');
+        $this->get(route('manajer.resep', ['menu_id' => $menu->id]))
             ->assertOk()
             ->assertSee('Tidak ada bahan aktif')
             ->assertDontSee('data-name="Susu"');
@@ -531,7 +536,7 @@ class WebWorkflowTest extends TestCase
             ->assertSee('Tidak ada bahan aktif')
             ->assertDontSee('Susu');
 
-        $this->from(route('manajer.menu', ['menu_id' => $menu->id]))
+        $this->from(route('manajer.resep', ['menu_id' => $menu->id]))
             ->post(route('manajer.resep.simpan'), [
                 'menu_id' => $menu->id,
                 'bahan' => [$bahan->id => 10],
@@ -546,8 +551,9 @@ class WebWorkflowTest extends TestCase
             ->assertSessionHasErrors('bahan_id');
     }
 
-    public function test_manager_can_create_menu_and_add_its_recipe_from_the_combined_page(): void
+    public function test_manager_can_create_menu_and_add_its_recipe_from_separate_pages(): void
     {
+        $this->seed(KategoriMenuSeeder::class);
         $manager = User::create([
             'nama' => 'Manajer',
             'no_hp' => '081111111111',
@@ -561,34 +567,53 @@ class WebWorkflowTest extends TestCase
         ]);
         $this->actingAs($manager);
 
+        $this->get(route('manajer.menu'))
+            ->assertOk()
+            ->assertSee('<option>Minuman</option>', false)
+            ->assertSee('<option>Makanan</option>', false)
+            ->assertDontSee('<option>Kopi</option>', false)
+            ->assertSee('Tambah menu')
+            ->assertDontSee('Formula resep');
+
+        $this->from(route('manajer.menu'))->post(route('manajer.menu.simpan'), [
+            'nama_menu' => 'Menu Kategori Invalid',
+            'kategori' => 'Kopi',
+            'harga_jual' => 10000,
+        ])->assertSessionHasErrors('kategori');
+
         $this->post(route('manajer.menu.simpan'), [
             'nama_menu' => 'Latte',
-            'kategori' => 'Kopi',
+            'kategori' => 'Minuman',
             'harga_jual' => 25000,
         ])->assertSessionHasNoErrors();
 
         $menu = Menu::where('nama_menu', 'Latte')->firstOrFail();
-        $menuUrl = route('manajer.menu', ['menu_id' => $menu->id]);
+        $menuUrl = route('manajer.menu');
+        $resepUrl = route('manajer.resep', ['menu_id' => $menu->id]);
         $this->assertSame('Habis', $menu->status);
 
         $this->get($menuUrl)
             ->assertOk()
-            ->assertSee('Formula resep')
-            ->assertSeeInOrder(['Tambah menu', 'Formula resep'])
+            ->assertSee('Latte')
+            ->assertSee('Belum ada resep')
+            ->assertSee($resepUrl)
+            ->assertDontSee('Resep belum dibuat untuk menu ini.');
+        $this->get($resepUrl)
+            ->assertOk()
             ->assertSee('Resep belum dibuat untuk menu ini.');
 
-        $this->from($menuUrl)
+        $this->from($resepUrl)
             ->post(route('manajer.resep.simpan'), [
                 'menu_id' => $menu->id,
                 'bahan' => [],
             ])
-            ->assertRedirect($menuUrl)
+            ->assertRedirect($resepUrl)
             ->assertSessionHasErrors('bahan');
 
         $this->post(route('manajer.resep.simpan'), [
             'menu_id' => $menu->id,
             'bahan' => [$bahan->id => 20],
-        ])->assertRedirect(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder');
+        ])->assertRedirect($resepUrl);
 
         $this->assertDatabaseHas('resep', [
             'menu_id' => $menu->id,
@@ -596,10 +621,11 @@ class WebWorkflowTest extends TestCase
             'takaran' => 20,
         ]);
         $this->assertSame('Aktif', $menu->fresh()->status);
-        $this->get($menuUrl)
+        $this->get($resepUrl)
             ->assertOk()
-            ->assertSee('1 bahan')
+            ->assertSee('Susu')
             ->assertDontSee('Resep belum dibuat untuk menu ini.');
+        $this->get($menuUrl)->assertSee('1 bahan');
     }
 
     public function test_manager_can_save_recipe_without_stock_and_receives_availability_message(): void
@@ -618,7 +644,7 @@ class WebWorkflowTest extends TestCase
                 'menu_id' => $menu->id,
                 'bahan' => [$bahan->id => 20],
             ])
-            ->assertRedirect(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder')
+            ->assertRedirect(route('manajer.resep', ['menu_id' => $menu->id]))
             ->assertSessionHas('success', 'Resep berhasil disimpan, tetapi status menu tetap Habis karena stok bahan belum mencukupi.');
 
         $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);

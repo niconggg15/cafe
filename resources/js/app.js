@@ -154,10 +154,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const materialSelect = document.getElementById('recipe-material');
     const amountInput = document.getElementById('recipe-amount');
+    const unitDisplay = document.getElementById('recipe-unit');
     const rows = document.getElementById('recipe-rows');
     const emptyState = document.getElementById('recipe-empty-state');
+    if (!materialSelect || !amountInput || !unitDisplay || !rows) return;
+
     const menuId = form.querySelector('[name="menu_id"]').value;
     const recipeBadge = document.querySelector(`[data-recipe-status="${menuId}"]`);
+
+    function updateSelectedUnit() {
+        unitDisplay.textContent = materialSelect.selectedOptions[0]?.dataset.unit || '-';
+    }
 
     function updateRecipeState() {
         if (!emptyState) return;
@@ -182,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function removeRecipeRow(button) {
         const row = button.closest('[data-recipe-row]');
-        row.querySelector('input').value = '';
+        const input = row.querySelector('input');
+        input.value = '';
+        input.disabled = true;
         row.hidden = true;
         updateAvailableMaterials();
         updateRecipeState();
@@ -191,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
     rows.querySelectorAll('[data-remove-recipe]').forEach((button) => {
         button.addEventListener('click', () => removeRecipeRow(button));
     });
+
+    materialSelect.addEventListener('change', updateSelectedUnit);
 
     document.getElementById('add-recipe-material').addEventListener('click', () => {
         const option = materialSelect.selectedOptions[0];
@@ -235,13 +246,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         row.hidden = false;
-        row.querySelector('input').value = String(amount);
+        const input = row.querySelector('input');
+        input.disabled = false;
+        input.value = String(amount);
         materialSelect.value = '';
         amountInput.value = '';
+        updateSelectedUnit();
         updateAvailableMaterials();
         updateRecipeState();
     });
 
+    updateSelectedUnit();
     updateAvailableMaterials();
     updateRecipeState();
 });

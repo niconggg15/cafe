@@ -106,17 +106,11 @@ class ManajerController extends Controller
         return back()->with('success', "Bahan {$bahan->nama_bahan} sekarang {$bahan->status}.");
     }
 
-    public function menu(Request $request): View
+    public function menu(): View
     {
-        $recipeMenus = Menu::with('resep.bahan')->orderBy('nama_menu')->get();
-        $selectedMenu = $recipeMenus->firstWhere('id', (int) $request->query('menu_id')) ?? $recipeMenus->first();
-
         return view('manajer.menu', [
             'menus' => Menu::withCount('resep')->orderBy('nama_menu')->paginate(20),
-            'recipeMenus' => $recipeMenus,
-            'bahans' => Bahan::orderBy('nama_bahan')->get(),
-            'bahansAktif' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
-            'selectedMenu' => $selectedMenu,
+            'kategoriMenus' => DB::table('kategori_menu')->orderBy('nama_kategori')->pluck('nama_kategori'),
         ]);
     }
 
@@ -125,7 +119,7 @@ class ManajerController extends Controller
         $menuBaru = $menu === null;
         $data = $request->validate([
             'nama_menu' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', 'in:Kopi,Non-kopi,Makanan'],
+            'kategori' => ['required', 'string', 'exists:kategori_menu,nama_kategori'],
             'harga_jual' => ['required', 'numeric', 'min:0'],
             'status' => [$menuBaru ? 'sometimes' : 'required', 'in:Aktif,Habis,Nonaktif'],
         ]);
@@ -139,15 +133,23 @@ class ManajerController extends Controller
 
         $menuStatus->segarkan([$menu->id]);
 
-        return redirect()->to(route('manajer.menu', ['menu_id' => $menu->id]).'#recipe-builder')
+        return redirect()->route('manajer.menu')
             ->with('success', $menuBaru
-                ? 'Menu berhasil dibuat. Lengkapi resepnya di bagian Formula Resep.'
+                ? 'Menu berhasil dibuat. Lengkapi resepnya di halaman Kelola Resep.'
                 : 'Data menu berhasil disimpan.');
     }
 
     public function resep(Request $request): View
     {
-        return $this->menu($request);
+        $menus = Menu::with('resep.bahan')->orderBy('nama_menu')->get();
+        $selectedMenu = $menus->firstWhere('id', (int) $request->query('menu_id')) ?? $menus->first();
+
+        return view('manajer.resep', [
+            'menus' => $menus,
+            'selectedMenu' => $selectedMenu,
+            'bahans' => Bahan::orderBy('nama_bahan')->get(),
+            'bahansAktif' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
+        ]);
     }
 
     public function simpanResep(Request $request, MenuStatusService $menuStatus): RedirectResponse
@@ -197,7 +199,7 @@ class ManajerController extends Controller
             ? 'Resep berhasil disimpan, tetapi status menu tetap Habis karena stok bahan belum mencukupi.'
             : 'Resep berhasil disimpan.';
 
-        return redirect()->to(route('manajer.menu', ['menu_id' => $data['menu_id']]).'#recipe-builder')
+        return redirect()->route('manajer.resep', ['menu_id' => $data['menu_id']])
             ->with('success', $pesan);
     }
 
