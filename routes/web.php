@@ -18,7 +18,7 @@ Route::middleware(['auth', 'wajib-ganti-password'])->group(function () {
 
     Route::get('/', function () {
         return auth()->user()->role === 'Manajer'
-            ? redirect()->route('manajer.bahan')
+            ? redirect()->route('manajer.dashboard')
             : redirect()->route('kasir.pesanan.baru');
     })->name('dashboard');
 
@@ -35,6 +35,7 @@ Route::middleware(['auth', 'wajib-ganti-password'])->group(function () {
     });
 
     Route::middleware('peran:Manajer')->prefix('manajer')->name('manajer.')->group(function () {
+        Route::get('/dashboard', [ManajerController::class, 'dashboard'])->name('dashboard');
         Route::get('/bahan', [ManajerController::class, 'bahan'])->name('bahan');
         Route::post('/bahan', [ManajerController::class, 'simpanBahan'])->name('bahan.simpan');
         Route::patch('/bahan/{bahan}/status', [ManajerController::class, 'ubahStatusBahan'])->name('bahan.status');

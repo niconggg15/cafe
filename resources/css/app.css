@@ -137,6 +137,28 @@ label span { color: var(--muted); font-weight: 400; }
 .receipt-foot { margin: 15px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
 .manager-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 230px; align-items: start; gap: 12px; }
 .manager-workspace-wide { grid-template-columns: minmax(260px, .7fr) minmax(0, 1.3fr); }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.dashboard-card { padding: 18px; }
+.dashboard-label { color: var(--muted); font-size: 11px; font-weight: 600; }
+.dashboard-value { display: block; margin-top: 5px; font-size: clamp(18px, 2vw, 24px); font-weight: 700; }
+.dashboard-caption { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+.dashboard-chart-wrap { padding: 8px 18px 18px; }
+.dashboard-chart { display: block; width: 100%; height: auto; overflow: visible; }
+.dashboard-chart-gridline { stroke: #e3e3e3; stroke-width: 1; }
+.dashboard-chart-label { fill: #666; font-size: 11px; }
+.dashboard-series-line { fill: none; stroke: var(--dashboard-series-color); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.dashboard-series-0 { --dashboard-series-color: #171717; }
+.dashboard-series-1 { --dashboard-series-color: #444; }
+.dashboard-series-2 { --dashboard-series-color: #666; }
+.dashboard-series-3 { --dashboard-series-color: #888; }
+.dashboard-series-4 { --dashboard-series-color: #aaa; }
+.dashboard-series-1.dashboard-series-line { stroke-dasharray: 8 5; }
+.dashboard-series-2.dashboard-series-line { stroke-dasharray: 3 4; }
+.dashboard-series-3.dashboard-series-line { stroke-dasharray: 10 4 2 4; }
+.dashboard-series-4.dashboard-series-line { stroke-dasharray: 1 5; }
+.dashboard-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 9px; }
+.dashboard-legend-item { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+.dashboard-legend-mark { width: 14px; height: 3px; background: var(--dashboard-series-color); }
 .manager-form { padding: 14px; }
 .manager-form .stack-form { gap: 11px; }
 .manager-form .button { width: 100%; }

@@ -29,6 +29,7 @@
             @else
                 <div class="nav-label">Operasional</div>
                 <nav class="nav-list">
+                    <a class="nav-link {{ request()->routeIs('manajer.dashboard') ? 'active' : '' }}" href="{{ route('manajer.dashboard') }}"><span class="nav-icon">&#8962;</span>Dashboard</a>
                     <a class="nav-link {{ request()->routeIs('manajer.bahan') ? 'active' : '' }}" href="{{ route('manajer.bahan') }}"><span class="nav-icon">&#9671;</span>Bahan</a>
                     <a class="nav-link {{ request()->routeIs('manajer.menu', 'manajer.resep') ? 'active' : '' }}" href="{{ route('manajer.menu') }}"><span class="nav-icon">&#9634;</span>Menu &amp; Resep</a>
                     <a class="nav-link {{ request()->routeIs('manajer.stok-masuk') ? 'active' : '' }}" href="{{ route('manajer.stok-masuk') }}"><span class="nav-icon">&#8595;</span>Stok Masuk</a>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Bahan;
 use App\Models\DetailPesanan;
 use App\Models\Menu;
+use App\Models\Pesanan;
 use App\Models\Resep;
 use App\Models\StokMasuk;
 use App\Services\HppService;
@@ -18,6 +19,58 @@ use Illuminate\View\View;
 
 class ManajerController extends Controller
 {
+    public function dashboard(): View
+    {
+        $pesananHariIni = Pesanan::whereDate('created_at', today())->where('status', '<>', 'Dibatalkan');
+        $bahanMenipis = Bahan::whereColumn('stok', '<=', 'batas_minimum')->orderBy('nama_bahan')->get();
+        $awalTren = today()->subDays(6);
+        $tanggalTren = collect(range(0, 6))->map(fn ($hari) => $awalTren->copy()->addDays($hari));
+        $penjualanMenuHarian = DetailPesanan::query()
+            ->select('detail_pesanan.nama_menu')
+            ->selectRaw('DATE(pesanan.created_at) as tanggal')
+            ->selectRaw('SUM(detail_pesanan.jumlah) as jumlah_terjual')
+            ->join('pesanan', 'pesanan.id', '=', 'detail_pesanan.pesanan_id')
+            ->where('pesanan.status', '<>', 'Dibatalkan')
+            ->whereBetween('pesanan.created_at', [$awalTren->copy()->startOfDay(), today()->endOfDay()])
+            ->groupBy('detail_pesanan.nama_menu', DB::raw('DATE(pesanan.created_at)'))
+            ->get()
+            ->groupBy('nama_menu');
+
+        $trenMenu = $penjualanMenuHarian
+            ->map(fn ($rows) => (int) $rows->sum('jumlah_terjual'))
+            ->sortDesc()
+            ->take(5)
+            ->keys()
+            ->map(function ($namaMenu) use ($penjualanMenuHarian, $tanggalTren) {
+                $rowsByDate = $penjualanMenuHarian->get($namaMenu)->keyBy('tanggal');
+                $values = $tanggalTren->map(function ($tanggal) use ($rowsByDate) {
+                    $row = $rowsByDate->get($tanggal->toDateString());
+
+                    return $row ? (int) $row->jumlah_terjual : 0;
+                });
+
+                return ['nama_menu' => $namaMenu, 'values' => $values];
+            })
+            ->values();
+        $maxPenjualanHarian = max(1, (int) ($trenMenu->flatMap(fn ($series) => $series['values'])->max() ?? 0));
+        $trenMenu = $trenMenu->map(function ($series) use ($maxPenjualanHarian) {
+            $series['points'] = $series['values']
+                ->map(fn ($jumlah, $index) => (50 + $index * 90).','.round(170 - ($jumlah / $maxPenjualanHarian * 140), 1))
+                ->implode(' ');
+
+            return $series;
+        });
+
+        return view('manajer.dashboard', [
+            'menuAktif' => Menu::where('status', 'Aktif')->count(),
+            'bahanMenipis' => $bahanMenipis,
+            'jumlahPesananHariIni' => (clone $pesananHariIni)->count(),
+            'penjualanHariIni' => $pesananHariIni->sum('total_bayar'),
+            'tanggalTren' => $tanggalTren,
+            'trenMenu' => $trenMenu,
+        ]);
+    }
+
     public function bahan(): View
     {
         return view('manajer.bahan', ['bahans' => Bahan::orderBy('nama_bahan')->paginate(20)]);

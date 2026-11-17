@@ -295,6 +295,17 @@ class WebWorkflowTest extends TestCase
         }
     }
 
+    public function test_manager_dashboard_hides_empty_low_stock_panel(): void
+    {
+        $manajer = new User(['nama' => 'Manajer Uji', 'role' => 'Manajer']);
+        $this->actingAs($manajer)
+            ->get(route('manajer.dashboard'))
+            ->assertOk()
+            ->assertSee('Bahan menipis')
+            ->assertDontSee('<h2>Bahan menipis</h2>', false)
+            ->assertDontSee('Tidak ada bahan menipis.');
+    }
+
     public function test_saving_menu_refreshes_its_status_from_current_ingredient_stock(): void
     {
         $bahan = Bahan::create(['nama_bahan' => 'Biji kopi', 'satuan' => 'g', 'stok' => 5]);
