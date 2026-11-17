@@ -8,14 +8,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell {{ request()->routeIs('manajer.bahan', 'manajer.menu', 'manajer.resep') ? 'coffee-theme manager-coffee-page' : (auth()->user()->role === 'Kasir' ? 'coffee-theme cashier-coffee-page' : '') }}">
+    <div class="app-shell {{ auth()->user()->role === 'Kasir' ? 'coffee-theme cashier-coffee-page' : 'coffee-theme manager-coffee-page' }}">
         <aside class="sidebar" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}">
-                <span class="brand-mark" aria-hidden="true">S</span>
-                <span>
-                    <span class="brand-name">Kedai Kopi Senja</span>
-                    <span class="brand-caption">Sistem Informasi Kafe</span>
-                </span>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="Kedai Kopi Senja">
+                <img class="brand-logo" src="{{ asset('images/logo-kedai-kopi-senja.jpg') }}" alt="Kedai Kopi Senja">
             </a>
 
             @if (auth()->user()->role === 'Kasir')
@@ -24,7 +20,8 @@
                     <a class="nav-link {{ request()->routeIs('kasir.pesanan.baru') ? 'active' : '' }}" href="{{ route('kasir.pesanan.baru') }}"><span class="nav-icon">+</span>Pesanan Baru</a>
                     <a class="nav-link {{ request()->routeIs('kasir.pesanan.index', 'kasir.struk') ? 'active' : '' }}" href="{{ route('kasir.pesanan.index') }}"><span class="nav-icon">&#9776;</span>Daftar Pesanan</a>
                     <a class="nav-link {{ request()->routeIs('kasir.menu') ? 'active' : '' }}" href="{{ route('kasir.menu') }}"><span class="nav-icon">&#9634;</span>Daftar Menu</a>
-                    <a class="nav-link {{ request()->routeIs('kasir.reset-password*') ? 'active' : '' }}" href="{{ route('kasir.reset-password') }}"><span class="nav-icon">&#8635;</span>Reset Password</a>
+                    <a class="nav-link {{ request()->routeIs('kasir.reset-password*') ? 'active' : '' }}" href="{{ route('kasir.reset-password') }}"><span class="nav-icon">&#8635;</span>Reset Password Pelanggan</a>
+                    <a class="nav-link {{ request()->routeIs('password.change') ? 'active' : '' }}" href="{{ route('password.change') }}"><span class="nav-icon">&#8635;</span>Ganti Password</a>
                 </nav>
             @else
                 <div class="nav-label">Operasional</div>
@@ -37,14 +34,13 @@
                     <a class="nav-link {{ request()->routeIs('manajer.batas-minimum') ? 'active' : '' }}" href="{{ route('manajer.batas-minimum') }}"><span class="nav-icon">&#9888;</span>Batas Minimum</a>
                     <a class="nav-link {{ request()->routeIs('manajer.hpp-margin*') ? 'active' : '' }}" href="{{ route('manajer.hpp-margin') }}"><span class="nav-icon">&#9636;</span>HPP &amp; Margin</a>
                     <a class="nav-link {{ request()->routeIs('manajer.laporan') ? 'active' : '' }}" href="{{ route('manajer.laporan') }}"><span class="nav-icon">&#9641;</span>Laporan</a>
+                    <a class="nav-link {{ request()->routeIs('password.change') ? 'active' : '' }}" href="{{ route('password.change') }}"><span class="nav-icon">&#8635;</span>Ganti Password</a>
                 </nav>
             @endif
 
             <div class="sidebar-bottom">
                 <div class="staff-label">Masuk sebagai</div>
                 <div class="staff-name">{{ auth()->user()->nama }}</div>
-                <div class="staff-role">{{ auth()->user()->role }}</div>
-                <a class="staff-password" href="{{ route('password.change') }}">Ganti password</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="logout-button" type="submit">Keluar</button>

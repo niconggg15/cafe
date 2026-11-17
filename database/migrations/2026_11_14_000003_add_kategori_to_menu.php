@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('menu', function (Blueprint $table) {
-            $table->enum('kategori', ['Kopi', 'Non-kopi', 'Makanan'])->default('Kopi');
+            $table->enum('kategori', ['Minuman', 'Makanan'])->default('Minuman');
         });
     }
 

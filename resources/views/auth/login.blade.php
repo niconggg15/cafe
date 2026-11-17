@@ -45,6 +45,14 @@
             font-weight: 700;
             letter-spacing: -.6px;
         }
+        .login-logo {
+            display: block;
+            width: min(100%, 360px);
+            height: 142px;
+            margin: 0 auto 8px;
+            object-fit: cover;
+            object-position: center;
+        }
         .login-header p {
             margin: 8px 0 0;
             color: var(--muted);
@@ -117,7 +125,7 @@
 <body>
     <main class="login-card">
         <header class="login-header">
-            <h1>Kedai Kopi Senja</h1>
+            <h1><img class="login-logo" src="{{ asset('images/logo-kedai-kopi-senja.jpg') }}" alt="Kedai Kopi Senja"></h1>
             <p>Masuk sebagai Kasir atau Manajer</p>
         </header>
 

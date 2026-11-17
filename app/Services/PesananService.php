@@ -15,6 +15,51 @@ class PesananService
     {
     }
 
+    public function kekuranganStok(array $items): array
+    {
+        $menus = Menu::with('resep.bahan')
+            ->whereIn('id', array_keys($items))
+            ->get()
+            ->keyBy('id');
+        $kebutuhan = [];
+
+        foreach ($items as $menuId => $jumlah) {
+            $menu = $menus->get($menuId);
+            if (! $menu || $menu->status !== 'Aktif' || $menu->resep->isEmpty()) {
+                continue;
+            }
+
+            foreach ($menu->resep as $resep) {
+                $bahan = $resep->bahan;
+                if (! $bahan) {
+                    continue;
+                }
+
+                $bahanId = (int) $bahan->id;
+                if (! isset($kebutuhan[$bahanId])) {
+                    $kebutuhan[$bahanId] = ['bahan' => $bahan, 'jumlah' => 0.0];
+                }
+                $kebutuhan[$bahanId]['jumlah'] += (float) $resep->takaran * (int) $jumlah;
+            }
+        }
+
+        $kekurangan = [];
+        foreach ($kebutuhan as $item) {
+            $dibutuhkan = round($item['jumlah'], 3);
+            $tersedia = round((float) $item['bahan']->stok, 3);
+            if ($tersedia < $dibutuhkan) {
+                $kekurangan[] = [
+                    'nama_bahan' => $item['bahan']->nama_bahan,
+                    'dibutuhkan' => $dibutuhkan,
+                    'tersedia' => $tersedia,
+                    'satuan' => $item['bahan']->satuan,
+                ];
+            }
+        }
+
+        return $kekurangan;
+    }
+
     public function buat(array $data, int $kasirId): Pesanan
     {
         return DB::transaction(function () use ($data, $kasirId) {

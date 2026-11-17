@@ -2,7 +2,7 @@
 
 @section('title', 'Stok Masuk')
 @section('heading', 'Catat Stok Masuk')
-@section('description', 'Setiap penerimaan menambah stok dan tersimpan sebagai riwayat.')
+@section('description', 'Pembelian bahan menambah stok. Jumlah harus lebih dari 0.')
 
 @section('content')
     <div class="manager-workspace manager-workspace-wide">
@@ -16,7 +16,7 @@
                     @csrf
                     <label>Tanggal<input type="date" name="tanggal" value="{{ now()->toDateString() }}" required></label>
                     <label>Bahan<select name="bahan_id" required>@foreach ($bahans as $bahan)<option value="{{ $bahan->id }}">{{ $bahan->nama_bahan }}</option>@endforeach</select></label>
-                    <label>Jumlah (sesuai satuan bahan)<input type="number" name="jumlah" min="0.001" step="0.001" required></label>
+                    <label>Jumlah (satuan bahan)<input type="number" name="jumlah" min="0.001" step="0.001" required></label>
                     <button class="button button-primary" type="submit">Simpan Stok Masuk</button>
                 </form>
             @endif
@@ -27,7 +27,7 @@
                 <thead><tr><th>Tanggal</th><th>Bahan</th><th>Jumlah</th><th>Dicatat oleh</th></tr></thead>
                 <tbody>
                 @forelse ($riwayat as $item)
-                    <tr><td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td><td>{{ $item->bahan->nama_bahan }}</td><td>{{ number_format($item->jumlah, 3, ',', '.') }} {{ $item->bahan->satuan }}</td><td>{{ $item->user->nama }}</td></tr>
+                    <tr><td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td><td>{{ $item->bahan->nama_bahan }}</td><td>{{ rtrim(rtrim(number_format($item->jumlah, 3, ',', '.'), '0'), ',') }} {{ $item->bahan->satuan }}</td><td>{{ $item->user->nama }}</td></tr>
                 @empty
                     <tr><td colspan="4" class="empty-state">Belum ada catatan stok masuk.</td></tr>
                 @endforelse

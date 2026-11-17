@@ -47,7 +47,7 @@ class WebWorkflowTest extends TestCase
         Schema::create('menu', function (Blueprint $table) {
             $table->id();
             $table->string('nama_menu');
-            $table->string('kategori')->default('Kopi');
+            $table->string('kategori')->default('Minuman');
             $table->decimal('harga_jual', 12, 2);
             $table->string('status');
             $table->timestamps();
@@ -210,6 +210,56 @@ class WebWorkflowTest extends TestCase
         $this->assertSame(0, Pesanan::count());
     }
 
+    public function test_cashier_order_page_shows_aggregated_stock_shortages(): void
+    {
+        $this->seed(KategoriMenuSeeder::class);
+        $kasir = User::create([
+            'nama' => 'Kasir Uji',
+            'username' => 'kasir-uji',
+            'password' => Hash::make('Password123'),
+            'role' => 'Kasir',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu UHT', 'satuan' => 'ml', 'stok' => 300]);
+        $menu = Menu::create([
+            'nama_menu' => 'Latte',
+            'kategori' => 'Minuman',
+            'harga_jual' => 28000,
+            'status' => 'Aktif',
+        ]);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 200]);
+        $menuLain = Menu::create([
+            'nama_menu' => 'Cappuccino',
+            'kategori' => 'Minuman',
+            'harga_jual' => 28000,
+            'status' => 'Aktif',
+        ]);
+        Resep::create(['menu_id' => $menuLain->id, 'bahan_id' => $bahan->id, 'takaran' => 100]);
+
+        $this->actingAs($kasir)
+            ->from(route('kasir.pesanan.baru'))
+            ->post(route('kasir.pesanan.simpan'), [
+                'items' => [$menu->id => 1, $menuLain->id => 2],
+                'no_meja' => 5,
+                'metode_bayar' => 'QRIS',
+            ])
+            ->assertRedirect(route('kasir.pesanan.baru'))
+            ->assertSessionHas('order_stock_shortages', [[
+                'nama_bahan' => 'Susu UHT',
+                'dibutuhkan' => 400.0,
+                'tersedia' => 300.0,
+                'satuan' => 'ml',
+            ]]);
+
+        $this->get(route('kasir.pesanan.baru'))
+            ->assertOk()
+            ->assertSee('Pesanan ditolak. Bahan tidak cukup:')
+            ->assertDontSee('order-category-filter')
+            ->assertSee('400 ml')
+            ->assertSee('300 ml');
+        $this->assertSame(300.0, (float) $bahan->fresh()->stok);
+        $this->assertSame(0, Pesanan::count());
+    }
+
     public function test_order_aggregates_shared_ingredient_requirements_across_menu_items(): void
     {
         $bahan = Bahan::create(['nama_bahan' => 'Biji kopi', 'satuan' => 'g', 'stok' => 15]);
@@ -245,6 +295,7 @@ class WebWorkflowTest extends TestCase
 
     public function test_cashier_and_manager_screens_render_with_live_laravel_data(): void
     {
+        $this->seed(KategoriMenuSeeder::class);
         $kasir = User::create([
             'nama' => 'Kasir Uji',
             'username' => 'kasir-uji',
@@ -260,12 +311,14 @@ class WebWorkflowTest extends TestCase
             ->get(route('kasir.pesanan.baru'))
             ->assertOk()
             ->assertSee('Kopi Senja')
-            ->assertSee('data-category-filter="Minuman"', false)
-            ->assertSee('data-category-filter="Makanan"', false)
-            ->assertDontSee('data-category-filter="Kopi"', false)
-            ->assertDontSee('data-category-filter="Non-kopi"', false)
+            ->assertSee('<table class="order-menu-table">', false)
+            ->assertSee('Minuman')
+            ->assertDontSee('order-category-filter')
             ->assertSee('type="radio" name="metode_bayar" value="Tunai"', false)
             ->assertSee('type="radio" name="metode_bayar" value="QRIS"', false)
+            ->assertSee('Reset Password Pelanggan')
+            ->assertSee('Ganti Password')
+            ->assertDontSee('<div class="staff-role">Kasir</div>', false)
             ->assertDontSee('HPP');
 
         $this->get(route('kasir.pesanan.index'))
@@ -282,6 +335,13 @@ class WebWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('Struk Pesanan #0001');
 
+        Bahan::create([
+            'nama_bahan' => 'Susu UHT',
+            'satuan' => 'ml',
+            'stok' => 50,
+            'batas_minimum' => 100,
+        ]);
+
         foreach ([
             'manajer.bahan',
             'manajer.menu',
@@ -293,6 +353,63 @@ class WebWorkflowTest extends TestCase
         ] as $routeName) {
             $this->actingAs($manajer)->get(route($routeName))->assertOk();
         }
+        $this->actingAs($manajer)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('manajer.dashboard'));
+        $this->actingAs($manajer)
+            ->get(route('manajer.dashboard'))
+            ->assertOk()
+            ->assertSee('Dashboard')
+            ->assertSee('Rp23.100')
+            ->assertSee('Jumlah pesanan hari ini')
+            ->assertSee('1 menu siap dijual')
+            ->assertSee('Bahan menipis')
+            ->assertSee('Susu UHT')
+            ->assertSee('50,000 ml')
+            ->assertSee('100,000 ml')
+            ->assertSee('Penjualan per menu')
+            ->assertSee('Kopi Senja')
+            ->assertSeeInOrder(['Dashboard', 'Bahan'])
+            ->assertDontSee('Akses cepat');
+        $this->actingAs($manajer)
+            ->get(route('manajer.bahan'))
+            ->assertSee('Ganti Password');
+    }
+
+    public function test_manager_minimum_stock_page_shows_status_and_separate_units(): void
+    {
+        $aman = Bahan::create([
+            'nama_bahan' => 'Biji kopi',
+            'satuan' => 'g',
+            'stok' => 2400,
+            'batas_minimum' => 500,
+        ]);
+        $menipis = Bahan::create([
+            'nama_bahan' => 'Susu UHT',
+            'satuan' => 'ml',
+            'stok' => 300,
+            'batas_minimum' => 1000,
+        ]);
+        $manajer = new User(['nama' => 'Manajer Uji', 'role' => 'Manajer']);
+
+        $this->actingAs($manajer)
+            ->get(route('manajer.batas-minimum'))
+            ->assertOk()
+            ->assertSee('Batas Minimum dan Bahan Menipis')
+            ->assertSee('Status')
+            ->assertSee('Aman')
+            ->assertSee('Menipis')
+            ->assertSee('form="batas-minimum-'.$aman->id.'"', false)
+            ->assertSee('form="batas-minimum-'.$menipis->id.'"', false)
+            ->assertSee('g')
+            ->assertSee('ml');
+
+        $this->from(route('manajer.batas-minimum'))
+            ->actingAs($manajer)
+            ->put(route('manajer.batas-minimum.update', $menipis), ['batas_minimum' => 250])
+            ->assertRedirect(route('manajer.batas-minimum'));
+
+        $this->assertSame(250.0, (float) $menipis->fresh()->batas_minimum);
     }
 
     public function test_manager_dashboard_hides_empty_low_stock_panel(): void

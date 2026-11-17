@@ -48,20 +48,8 @@
             background: var(--paper);
             border-right: 1px solid var(--line);
         }
-        .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 31px; }
-        .brand-mark {
-            display: grid;
-            width: 36px;
-            height: 36px;
-            place-items: center;
-            border-radius: 50%;
-            background: var(--green);
-            color: white;
-            font-family: "Fraunces", serif;
-            font-size: 20px;
-        }
-        .brand-name { font-family: "Fraunces", serif; font-size: 17px; font-weight: 600; }
-        .brand-caption { color: var(--muted); font-size: 11px; }
+        .brand { display: block; padding: 0 0 31px; }
+        .brand-logo { display: block; width: 100%; height: 92px; object-fit: cover; object-position: center; }
         .nav-label { padding: 0 11px 9px; color: #9a9f96; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
         .nav-list { display: grid; gap: 4px; }
         .nav-link {
@@ -172,8 +160,9 @@
         }
         @media (max-width: 790px) {
             .sidebar { width: 72px; align-items: center; padding: 19px 10px; }
-            .brand { justify-content: center; padding: 0 0 27px; }
-            .brand-copy, .nav-label, .nav-text, .sidebar-bottom { display: none; }
+            .brand { padding: 0 0 27px; }
+            .brand-logo { width: 64px; height: 30px; margin: 0 auto; }
+            .nav-label, .nav-text, .sidebar-bottom { display: none; }
             .nav-list { width: 100%; }
             .nav-link { justify-content: center; padding: 0; }
             .nav-icon { font-size: 17px; }
@@ -203,11 +192,7 @@
     <div class="app-shell">
         <aside class="sidebar" aria-label="Navigasi utama">
             <div class="brand">
-                <div class="brand-mark" aria-hidden="true">S</div>
-                <div class="brand-copy">
-                    <div class="brand-name">Kedai Kopi Senja</div>
-                    <div class="brand-caption">Sistem Informasi Kafe</div>
-                </div>
+                <img class="brand-logo" src="{{ asset('images/logo-kedai-kopi-senja.jpg') }}" alt="Kedai Kopi Senja">
             </div>
 
             <div class="nav-label">Transaksi</div>

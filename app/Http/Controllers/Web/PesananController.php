@@ -8,6 +8,7 @@ use App\Models\Pesanan;
 use App\Services\PesananService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PesananController extends Controller
@@ -16,6 +17,7 @@ class PesananController extends Controller
     {
         return view('kasir.pesanan-baru', [
             'menus' => Menu::with('resep')->orderBy('nama_menu')->get(),
+            'kategoriMenus' => DB::table('kategori_menu')->orderBy('nama_kategori')->pluck('nama_kategori'),
         ]);
     }
 
@@ -27,6 +29,13 @@ class PesananController extends Controller
             'no_meja' => ['required', 'integer', 'between:1,10'],
             'metode_bayar' => ['required', 'in:Tunai,QRIS'],
         ]);
+
+        $kekuranganStok = $pesananService->kekuranganStok($data['items']);
+        if ($kekuranganStok !== []) {
+            return back()
+                ->withInput()
+                ->with('order_stock_shortages', $kekuranganStok);
+        }
 
         $pesanan = $pesananService->buat($data, (int) $request->user()->id);
 

@@ -1,32 +1,41 @@
 @extends('layouts.app')
 
 @section('title', 'Batas Minimum')
-@section('heading', 'Batas Minimum & Bahan Menipis')
-@section('description', 'Daftar menipis dihitung dari stok terkini setiap kali halaman dibuka.')
+@section('heading', 'Batas Minimum dan Bahan Menipis')
+@section('description', 'Bahan menipis bila stok sama dengan atau kurang dari batas minimum')
 
 @section('content')
     <section class="panel">
-        <div class="panel-head"><div><h2>Bahan menipis</h2><p class="panel-hint">Stok sama dengan atau di bawah batas minimum.</p></div><span class="count-badge">{{ $menipis->count() }}</span></div>
         <div class="table-wrap"><table>
-            <thead><tr><th>Bahan</th><th>Stok</th><th>Harga/satuan</th><th>Ubah batas min.</th></tr></thead>
+            <thead><tr><th>Bahan</th><th>Stok</th><th>Batas minimum</th><th>Satuan</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
             @forelse ($bahans as $bahan)
                 <tr>
-                    <td class="table-primary">{{ $bahan->nama_bahan }} @if ($bahan->stok <= $bahan->batas_minimum)<span class="badge badge-amber">Menipis</span>@endif</td>
-                    <td>{{ number_format($bahan->stok, 3, ',', '.') }} {{ $bahan->satuan }}</td>
-                    <td>Rp{{ number_format($bahan->harga_per_satuan, 0, ',', '.') }}</td>
+                    <td class="table-primary">{{ $bahan->nama_bahan }}</td>
+                    <td>{{ rtrim(rtrim(number_format($bahan->stok, 3, ',', '.'), '0'), ',') }}</td>
                     <td>
-                        <form class="inline-form" method="POST" action="{{ route('manajer.batas-minimum.update', $bahan) }}">
+                        <input class="table-input" type="number" name="batas_minimum" value="{{ $bahan->batas_minimum }}" min="0" step="0.001" form="batas-minimum-{{ $bahan->id }}" required>
+                    </td>
+                    <td>{{ $bahan->satuan }}</td>
+                    <td>
+                        @if ($bahan->stok <= $bahan->batas_minimum)
+                            <span class="badge badge-amber">Menipis</span>
+                        @else
+                            <span class="badge badge-green">Aman</span>
+                        @endif
+                    </td>
+                    <td>
+                        <form id="batas-minimum-{{ $bahan->id }}" method="POST" action="{{ route('manajer.batas-minimum.update', $bahan) }}">
                             @csrf @method('PUT')
-                            <input class="table-input" type="number" name="batas_minimum" value="{{ $bahan->batas_minimum }}" min="0" step="0.001" required>
                             <button class="button button-small button-secondary" type="submit">Simpan</button>
                         </form>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4" class="empty-state">Belum ada bahan.</td></tr>
+                <tr><td colspan="6" class="empty-state">Belum ada bahan.</td></tr>
             @endforelse
             </tbody>
         </table></div>
+        <p class="panel-footnote">Daftar menipis langsung mengikuti perubahan stok dan batas minimum. Batas awal setelah impor: 0.</p>
     </section>
 @endsection

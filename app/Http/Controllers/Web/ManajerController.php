@@ -310,7 +310,6 @@ class ManajerController extends Controller
     {
         return view('manajer.batas-minimum', [
             'bahans' => Bahan::orderBy('nama_bahan')->get(),
-            'menipis' => Bahan::whereColumn('stok', '<=', 'batas_minimum')->orderBy('nama_bahan')->get(),
         ]);
     }
 

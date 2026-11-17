@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         menuItems.set(id, {
             id,
             name: button.dataset.name,
-            category: button.dataset.category,
             price: Number(button.dataset.price),
         });
         button.addEventListener('click', () => updateQuantity(id, 1));
@@ -59,43 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const row = document.createElement('div');
             row.className = 'order-row';
-            const details = document.createElement('div');
             const name = document.createElement('div');
             name.className = 'order-item-name';
-            name.textContent = item.name;
-            const price = document.createElement('div');
-            price.className = 'order-item-price';
-            price.textContent = `${rupiah(item.price)} / item`;
-            details.append(name, price);
-
-            const actions = document.createElement('div');
-            actions.className = 'order-row-actions';
-            const quantityControls = document.createElement('div');
-            quantityControls.className = 'quantity-control';
-            const decrease = document.createElement('button');
-            decrease.type = 'button';
-            decrease.className = 'quantity-button';
-            decrease.textContent = '-';
-            decrease.setAttribute('aria-label', `Kurangi ${item.name}`);
-            decrease.addEventListener('click', () => updateQuantity(id, -1));
-            const count = document.createElement('span');
-            count.className = 'quantity-value';
-            count.textContent = String(quantity);
-            const increase = document.createElement('button');
-            increase.type = 'button';
-            increase.className = 'quantity-button';
-            increase.textContent = '+';
-            increase.setAttribute('aria-label', `Tambah ${item.name}`);
-            increase.addEventListener('click', () => updateQuantity(id, 1));
-            quantityControls.append(decrease, count, increase);
-
-            const remove = document.createElement('button');
-            remove.type = 'button';
-            remove.className = 'remove-button';
-            remove.textContent = 'Hapus';
-            remove.addEventListener('click', () => updateQuantity(id, -quantity));
-            actions.append(quantityControls, remove);
-            row.append(details, actions);
+            name.textContent = `${quantity} x ${item.name}`;
+            const price = document.createElement('strong');
+            price.className = 'order-item-total';
+            price.textContent = rupiah(item.price * quantity);
+            row.append(name, price);
             orderItems.append(row);
 
             const hiddenInput = document.createElement('input');
@@ -107,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const serviceCharge = Math.round(subtotal * 0.05);
         const tax = Math.round((subtotal + serviceCharge) * 0.10);
-        document.getElementById('item-count').textContent = String(totalCount);
         document.getElementById('subtotal').textContent = rupiah(subtotal);
         document.getElementById('service-charge').textContent = rupiah(serviceCharge);
         document.getElementById('tax').textContent = rupiah(tax);
@@ -118,32 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
             count.textContent = String(cart.get(count.dataset.menuCount) || 0);
         });
     }
-
-    const search = document.getElementById('menu-search');
-    const emptySearch = document.getElementById('menu-search-empty');
-    let activeCategory = 'Semua';
-    function filterMenu() {
-        const query = search.value.trim().toLocaleLowerCase('id');
-        let visibleCount = 0;
-        document.querySelectorAll('[data-menu-row]').forEach((row) => {
-            const matchesName = row.dataset.name.includes(query);
-            const matchesCategory = activeCategory === 'Semua' || row.dataset.rowCategory === activeCategory;
-            const visible = matchesName && matchesCategory;
-            row.hidden = !visible;
-            if (visible) visibleCount++;
-        });
-        emptySearch.hidden = visibleCount > 0;
-    }
-
-    search.addEventListener('input', filterMenu);
-    document.querySelectorAll('[data-category-filter]').forEach((button) => {
-        button.addEventListener('click', () => {
-            activeCategory = button.dataset.categoryFilter;
-            document.querySelector('.category-filter.active')?.classList.remove('active');
-            button.classList.add('active');
-            filterMenu();
-        });
-    });
 
     renderOrder();
 });
