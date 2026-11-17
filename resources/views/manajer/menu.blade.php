@@ -39,6 +39,14 @@
                                             <button class="button button-primary button-small" type="submit">Simpan</button>
                                         </form>
                                     </details>
+                                    @if ((int) $menu->detail_pesanan_count === 0)
+                                        <form method="POST" action="{{ route('manajer.menu.hapus', $menu) }}" onsubmit="return confirm('Hapus menu ini beserta resepnya?')">
+                                            @csrf @method('DELETE')
+                                            <button class="button button-small button-danger" type="submit">Hapus</button>
+                                        </form>
+                                    @else
+                                        <span class="panel-hint">Tidak dapat dihapus: ada riwayat pesanan.</span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

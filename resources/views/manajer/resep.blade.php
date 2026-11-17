@@ -73,8 +73,16 @@
                 @else
                     <p class="empty-state">Semua bahan yang bisa ditambahkan berstatus nonaktif. Bahan yang sudah ada pada resep tetap dapat diubah atau dihapus.</p>
                 @endif
-                <button class="button button-primary" type="submit">Simpan Resep</button>
             </form>
+            <div class="table-actions">
+                <button class="button button-primary" type="submit" form="recipe-form">Simpan Resep</button>
+                @if ($selectedMenu->resep->isNotEmpty())
+                    <form method="POST" action="{{ route('manajer.resep.hapus', $selectedMenu) }}" onsubmit="return confirm('Hapus seluruh resep? Menu akan berstatus Habis.')">
+                        @csrf @method('DELETE')
+                        <button class="button button-danger" type="submit">Hapus Resep</button>
+                    </form>
+                @endif
+            </div>
         @endif
     </section>
 @endsection

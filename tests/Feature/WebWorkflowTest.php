@@ -468,6 +468,81 @@ class WebWorkflowTest extends TestCase
         $this->assertDatabaseHas('stok_masuk', ['bahan_id' => $bahan->id, 'user_id' => $manager->id]);
     }
 
+    public function test_manager_can_update_and_delete_unused_material(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create([
+            'nama_bahan' => 'Susu',
+            'satuan' => 'ml',
+            'stok' => 0,
+            'harga_per_satuan' => 10,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('manajer.bahan'))
+            ->assertOk()
+            ->assertSee('Ubah')
+            ->assertSee('Hapus');
+
+        $this->put(route('manajer.bahan.update', $bahan), [
+            'nama_bahan' => 'Susu UHT',
+            'satuan' => 'pcs',
+            'batas_minimum' => 5,
+            'harga_per_satuan' => 15,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('bahan', [
+            'id' => $bahan->id,
+            'nama_bahan' => 'Susu UHT',
+            'satuan' => 'pcs',
+            'batas_minimum' => 5,
+            'harga_per_satuan' => 15,
+        ]);
+        $this->assertNotNull($bahan->fresh()->harga_diperbarui_at);
+
+        $this->delete(route('manajer.bahan.hapus', $bahan))->assertRedirect();
+        $this->assertDatabaseMissing('bahan', ['id' => $bahan->id]);
+    }
+
+    public function test_manager_cannot_delete_or_change_unit_of_material_with_history(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 50]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
+        DB::table('stok_masuk')->insert([
+            'bahan_id' => $bahan->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-11-15',
+            'jumlah' => 50,
+        ]);
+
+        $this->actingAs($manager)
+            ->put(route('manajer.bahan.update', $bahan), [
+                'nama_bahan' => 'Susu',
+                'satuan' => 'g',
+                'batas_minimum' => 0,
+                'harga_per_satuan' => 0,
+            ])
+            ->assertSessionHasErrors('satuan');
+
+        $this->delete(route('manajer.bahan.hapus', $bahan))
+            ->assertRedirect(route('manajer.bahan'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('bahan', ['id' => $bahan->id, 'satuan' => 'ml']);
+    }
+
     public function test_manager_can_toggle_material_status_without_changing_existing_recipe_or_stock_history(): void
     {
         $manager = User::create([
@@ -489,9 +564,9 @@ class WebWorkflowTest extends TestCase
         $this->actingAs($manager)
             ->get(route('manajer.bahan'))
             ->assertOk()
+            ->assertSee('Ubah')
             ->assertSee('Nonaktifkan')
-            ->assertDontSee('Ubah')
-            ->assertDontSee('Hapus');
+            ->assertSee('Tidak dapat dihapus: ada stok atau riwayat.');
 
         $this->patch(route('manajer.bahan.status', $bahan))
             ->assertRedirect();
@@ -626,6 +701,85 @@ class WebWorkflowTest extends TestCase
             ->assertSee('Susu')
             ->assertDontSee('Resep belum dibuat untuk menu ini.');
         $this->get($menuUrl)->assertSee('1 bahan');
+    }
+
+    public function test_manager_can_delete_menu_without_order_history_and_its_recipe(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 100]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 20]);
+
+        $this->actingAs($manager)
+            ->get(route('manajer.menu'))
+            ->assertOk()
+            ->assertSee('Hapus');
+
+        $this->delete(route('manajer.menu.hapus', $menu))
+            ->assertRedirect(route('manajer.menu'));
+
+        $this->assertDatabaseMissing('menu', ['id' => $menu->id]);
+        $this->assertDatabaseMissing('resep', ['menu_id' => $menu->id]);
+    }
+
+    public function test_manager_cannot_delete_menu_in_order_history(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+        $pesanan = Pesanan::create([
+            'no_meja' => 1,
+            'metode_bayar' => 'Tunai',
+            'status' => 'Selesai',
+            'subtotal' => 25000,
+            'service_charge' => 1250,
+            'pajak' => 2625,
+            'total_bayar' => 28875,
+        ]);
+        DB::table('detail_pesanan')->insert([
+            'pesanan_id' => $pesanan->id,
+            'menu_id' => $menu->id,
+            'jumlah' => 1,
+            'harga_saat_transaksi' => 25000,
+            'nama_menu' => 'Latte',
+        ]);
+
+        $this->actingAs($manager)
+            ->delete(route('manajer.menu.hapus', $menu))
+            ->assertRedirect(route('manajer.menu'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('menu', ['id' => $menu->id]);
+        $this->assertDatabaseHas('detail_pesanan', ['menu_id' => $menu->id]);
+    }
+
+    public function test_manager_can_delete_whole_recipe_and_menu_becomes_habis(): void
+    {
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 100]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+        Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 20]);
+
+        $this->actingAs($manager)
+            ->delete(route('manajer.resep.hapus', $menu))
+            ->assertRedirect(route('manajer.resep', ['menu_id' => $menu->id]));
+
+        $this->assertDatabaseMissing('resep', ['menu_id' => $menu->id]);
+        $this->assertSame('Habis', $menu->fresh()->status);
     }
 
     public function test_manager_can_save_recipe_without_stock_and_receives_availability_message(): void

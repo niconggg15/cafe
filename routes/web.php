@@ -38,12 +38,16 @@ Route::middleware(['auth', 'wajib-ganti-password'])->group(function () {
         Route::get('/dashboard', [ManajerController::class, 'dashboard'])->name('dashboard');
         Route::get('/bahan', [ManajerController::class, 'bahan'])->name('bahan');
         Route::post('/bahan', [ManajerController::class, 'simpanBahan'])->name('bahan.simpan');
+        Route::put('/bahan/{bahan}', [ManajerController::class, 'ubahBahan'])->name('bahan.update');
+        Route::delete('/bahan/{bahan}', [ManajerController::class, 'hapusBahan'])->name('bahan.hapus');
         Route::patch('/bahan/{bahan}/status', [ManajerController::class, 'ubahStatusBahan'])->name('bahan.status');
         Route::get('/menu', [ManajerController::class, 'menu'])->name('menu');
         Route::post('/menu', [ManajerController::class, 'simpanMenu'])->name('menu.simpan');
         Route::put('/menu/{menu}', [ManajerController::class, 'simpanMenu'])->name('menu.update');
+        Route::delete('/menu/{menu}', [ManajerController::class, 'hapusMenu'])->name('menu.hapus');
         Route::get('/resep', [ManajerController::class, 'resep'])->name('resep');
         Route::post('/resep', [ManajerController::class, 'simpanResep'])->name('resep.simpan');
+        Route::delete('/resep/{menu}', [ManajerController::class, 'hapusResep'])->name('resep.hapus');
         Route::get('/stok-masuk', [ManajerController::class, 'stokMasuk'])->name('stok-masuk');
         Route::post('/stok-masuk', [ManajerController::class, 'simpanStokMasuk'])->name('stok-masuk.simpan');
         Route::get('/batas-minimum', [ManajerController::class, 'batasMinimum'])->name('batas-minimum');

@@ -73,7 +73,9 @@ class ManajerController extends Controller
 
     public function bahan(): View
     {
-        return view('manajer.bahan', ['bahans' => Bahan::orderBy('nama_bahan')->paginate(20)]);
+        return view('manajer.bahan', [
+            'bahans' => Bahan::withCount(['resep', 'stokMasuk'])->orderBy('nama_bahan')->paginate(20),
+        ]);
     }
 
     public function simpanBahan(Request $request): RedirectResponse
@@ -98,6 +100,47 @@ class ManajerController extends Controller
         return back()->with('success', 'Data bahan berhasil disimpan.');
     }
 
+    public function ubahBahan(Request $request, Bahan $bahan): RedirectResponse
+    {
+        $request->merge(['nama_bahan' => trim((string) $request->input('nama_bahan'))]);
+        $data = $request->validate([
+            'nama_bahan' => ['required', 'string', 'max:255'],
+            'satuan' => ['required', 'in:g,ml,pcs'],
+            'batas_minimum' => ['required', 'numeric', 'min:0'],
+            'harga_per_satuan' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        if (Bahan::where('nama_bahan', $data['nama_bahan'])->where('id', '<>', $bahan->id)->exists()) {
+            return back()->withErrors(['nama_bahan' => 'Nama bahan sudah digunakan.'])->withInput();
+        }
+
+        $satuanTerpakai = (float) $bahan->stok > 0
+            || $bahan->resep()->exists()
+            || $bahan->stokMasuk()->exists();
+        if ($satuanTerpakai && $data['satuan'] !== $bahan->satuan) {
+            return back()->withErrors(['satuan' => 'Satuan tidak bisa diubah karena bahan sudah memiliki stok atau riwayat pemakaian.'])->withInput();
+        }
+
+        if ((float) $data['harga_per_satuan'] !== (float) $bahan->harga_per_satuan) {
+            $data['harga_diperbarui_at'] = now();
+        }
+        $bahan->update($data);
+
+        return back()->with('success', 'Data bahan berhasil diperbarui.');
+    }
+
+    public function hapusBahan(Bahan $bahan): RedirectResponse
+    {
+        if ((float) $bahan->stok > 0 || $bahan->resep()->exists() || $bahan->stokMasuk()->exists()) {
+            return redirect()->route('manajer.bahan')
+                ->with('error', 'Bahan tidak dapat dihapus karena masih memiliki stok atau riwayat. Nonaktifkan bahan agar tidak digunakan lagi.');
+        }
+
+        $bahan->delete();
+
+        return redirect()->route('manajer.bahan')->with('success', 'Data bahan berhasil dihapus.');
+    }
+
     public function ubahStatusBahan(Bahan $bahan): RedirectResponse
     {
         $bahan->status = $bahan->status === 'Aktif' ? 'Nonaktif' : 'Aktif';
@@ -109,7 +152,7 @@ class ManajerController extends Controller
     public function menu(): View
     {
         return view('manajer.menu', [
-            'menus' => Menu::withCount('resep')->orderBy('nama_menu')->paginate(20),
+            'menus' => Menu::withCount(['resep', 'detailPesanan'])->orderBy('nama_menu')->paginate(20),
             'kategoriMenus' => DB::table('kategori_menu')->orderBy('nama_kategori')->pluck('nama_kategori'),
         ]);
     }
@@ -137,6 +180,21 @@ class ManajerController extends Controller
             ->with('success', $menuBaru
                 ? 'Menu berhasil dibuat. Lengkapi resepnya di halaman Kelola Resep.'
                 : 'Data menu berhasil disimpan.');
+    }
+
+    public function hapusMenu(Menu $menu): RedirectResponse
+    {
+        if ($menu->detailPesanan()->exists()) {
+            return redirect()->route('manajer.menu')
+                ->with('error', "Menu {$menu->nama_menu} tidak dapat dihapus karena sudah tercatat dalam pesanan. Nonaktifkan menu untuk mempertahankan riwayat.");
+        }
+
+        DB::transaction(function () use ($menu) {
+            $menu->resep()->delete();
+            $menu->delete();
+        });
+
+        return redirect()->route('manajer.menu')->with('success', 'Data menu dan resepnya berhasil dihapus.');
     }
 
     public function resep(Request $request): View
@@ -201,6 +259,24 @@ class ManajerController extends Controller
 
         return redirect()->route('manajer.resep', ['menu_id' => $data['menu_id']])
             ->with('success', $pesan);
+    }
+
+    public function hapusResep(Menu $menu): RedirectResponse
+    {
+        if (! $menu->resep()->exists()) {
+            return redirect()->route('manajer.resep', ['menu_id' => $menu->id])
+                ->with('error', 'Menu ini belum memiliki resep.');
+        }
+
+        DB::transaction(function () use ($menu) {
+            $menu->resep()->delete();
+            if ($menu->status !== 'Nonaktif') {
+                $menu->update(['status' => 'Habis']);
+            }
+        });
+
+        return redirect()->route('manajer.resep', ['menu_id' => $menu->id])
+            ->with('success', 'Resep berhasil dihapus. Status menu menjadi Habis sampai resep dibuat kembali.');
     }
 
     public function stokMasuk(): View
