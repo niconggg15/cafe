@@ -50,7 +50,8 @@ class SupplierService
             ];
         }
 
-        $rows = $response->json();
+        $payload = $response->json();
+        $rows = is_array($payload) ? ($payload['data'] ?? null) : null;
         if (! is_array($rows) || $rows === []) {
             Log::warning('Format respons supplier tidak valid.');
 
@@ -62,9 +63,11 @@ class SupplierService
 
         $hargaSupplier = [];
         foreach ($rows as $row) {
-            if (! is_array($row) || ! isset($row['nama'], $row['harga']) ||
+            if (! is_array($row) || ! isset($row['nama'], $row['satuan_dasar'], $row['harga_per_satuan']) ||
                 ! is_string($row['nama']) || trim($row['nama']) === '' ||
-                ! is_numeric($row['harga']) || ! is_finite((float) $row['harga']) || (float) $row['harga'] < 0) {
+                ! is_string($row['satuan_dasar']) || trim($row['satuan_dasar']) === '' ||
+                ! is_numeric($row['harga_per_satuan']) || ! is_finite((float) $row['harga_per_satuan']) ||
+                (float) $row['harga_per_satuan'] < 0) {
                 Log::warning('Data harga supplier tidak valid.');
 
                 return [
@@ -82,19 +85,34 @@ class SupplierService
                     'pesan' => 'Data supplier memuat bahan duplikat. Harga terakhir tetap digunakan.',
                 ];
             }
-            $hargaSupplier[$nama] = (float) $row['harga'];
+            $hargaSupplier[$nama] = [
+                'satuan' => mb_strtolower(trim($row['satuan_dasar']), 'UTF-8'),
+                'harga' => (float) $row['harga_per_satuan'],
+            ];
         }
 
         $bahans = Bahan::all()->keyBy(fn (Bahan $bahan) => mb_strtolower(trim($bahan->nama_bahan), 'UTF-8'));
+        foreach ($hargaSupplier as $nama => $data) {
+            $bahan = $bahans->get($nama);
+            if ($bahan && mb_strtolower(trim($bahan->satuan), 'UTF-8') !== $data['satuan']) {
+                Log::warning('Satuan bahan supplier tidak cocok.', ['nama' => $bahan->nama_bahan]);
+
+                return [
+                    'ok' => false,
+                    'pesan' => 'Satuan bahan dari supplier tidak cocok. Harga terakhir tetap digunakan.',
+                ];
+            }
+        }
+
         $diperbarui = 0;
         DB::transaction(function () use ($bahans, $hargaSupplier, &$diperbarui) {
-            foreach ($hargaSupplier as $nama => $harga) {
+            foreach ($hargaSupplier as $nama => $data) {
                 $bahan = $bahans->get($nama);
                 if (! $bahan) {
                     continue;
                 }
 
-                $bahan->harga_per_satuan = $harga;
+                $bahan->harga_per_satuan = $data['harga'];
                 $bahan->harga_diperbarui_at = now();
                 $bahan->save();
                 $diperbarui++;

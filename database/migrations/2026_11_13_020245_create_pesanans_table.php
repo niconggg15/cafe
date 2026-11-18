@@ -16,7 +16,6 @@ return new class extends Migration
     {
         Schema::create('pesanans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pelanggan_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('kasir_id')->nullable()->constrained('users')->nullOnDelete();
             $table->unsignedTinyInteger('no_meja');
             $table->enum('metode_bayar', ['Tunai', 'QRIS']);

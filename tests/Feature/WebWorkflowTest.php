@@ -11,6 +11,7 @@ use App\Services\PesananService;
 use App\Services\SupplierService;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\KategoriMenuSeeder;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Database\Schema\Blueprint;
@@ -444,12 +445,8 @@ class WebWorkflowTest extends TestCase
 
     public function test_cashier_reset_password_normalizes_customer_phone(): void
     {
-        $pelanggan = User::create([
-            'nama' => 'Pelanggan Uji',
-            'no_hp' => '081234567890',
-            'password' => Hash::make('PasswordLama123'),
-            'role' => 'Pelanggan',
-        ]);
+        $this->seed(DatabaseSeeder::class);
+        $pelanggan = User::where('no_hp', '081234567890')->firstOrFail();
 
         $kasir = new User(['nama' => 'Kasir Uji', 'role' => 'Kasir']);
         $this->actingAs($kasir)
@@ -502,6 +499,23 @@ class WebWorkflowTest extends TestCase
             ->assertSessionHasErrors('no_hp');
     }
 
+    public function test_database_seeder_creates_demo_customer_without_resetting_it_on_repeat_runs(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $pelanggan = User::where('no_hp', '081234567890')->firstOrFail();
+
+        $this->assertSame('Pelanggan', $pelanggan->role);
+        $this->assertSame('Pelanggan Demo', $pelanggan->nama);
+        $this->assertTrue(Hash::check('Pelanggan123', $pelanggan->password));
+
+        $pelanggan->password = Hash::make('PasswordYangDiubah123');
+        $pelanggan->save();
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertTrue(Hash::check('PasswordYangDiubah123', $pelanggan->fresh()->password));
+        $this->assertSame(1, User::where('no_hp', '081234567890')->count());
+    }
+
     public function test_supplier_prices_update_known_ingredients_only(): void
     {
         $bahan = Bahan::create([
@@ -517,8 +531,11 @@ class WebWorkflowTest extends TestCase
         ]);
         Http::fake([
             'supplier.example.test/prices' => Http::response([
-                ['nama' => 'Biji kopi', 'harga' => 125],
-                ['nama' => 'Bahan tidak dikenal', 'harga' => 200],
+                'diperbarui' => 'Harga berhasil diperbarui.',
+                'data' => [
+                    ['kode' => 'BH001', 'nama' => 'Biji kopi', 'satuan_dasar' => 'g', 'harga_per_satuan' => 125],
+                    ['kode' => 'BH999', 'nama' => 'Bahan tidak dikenal', 'satuan_dasar' => 'pcs', 'harga_per_satuan' => 200],
+                ],
             ]),
         ]);
 
@@ -528,6 +545,34 @@ class WebWorkflowTest extends TestCase
         $this->assertSame(125.0, (float) $bahan->fresh()->harga_per_satuan);
         $this->assertNotNull($bahan->fresh()->harga_diperbarui_at);
         Http::assertSent(fn (ClientRequest $request) => $request->hasHeader('X-API-Key', 'test-key'));
+    }
+
+    public function test_supplier_unit_mismatch_keeps_last_price(): void
+    {
+        $bahan = Bahan::create([
+            'nama_bahan' => 'Biji kopi',
+            'satuan' => 'g',
+            'stok' => 100,
+            'harga_per_satuan' => 90,
+        ]);
+        config([
+            'services.supplier.url' => 'https://supplier.example.test/prices',
+            'services.supplier.api_key' => 'test-key',
+            'services.supplier.timeout' => 5,
+        ]);
+        Http::fake([
+            'supplier.example.test/prices' => Http::response([
+                'data' => [
+                    ['kode' => 'BH001', 'nama' => 'Biji kopi', 'satuan_dasar' => 'ml', 'harga_per_satuan' => 125],
+                ],
+            ]),
+        ]);
+
+        $result = app(SupplierService::class)->sinkron();
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(90.0, (float) $bahan->fresh()->harga_per_satuan);
+        $this->assertNull($bahan->fresh()->harga_diperbarui_at);
     }
 
     public function test_missing_supplier_configuration_keeps_last_price(): void
