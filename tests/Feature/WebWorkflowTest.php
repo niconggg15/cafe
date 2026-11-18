@@ -42,7 +42,6 @@ class WebWorkflowTest extends TestCase
             $table->decimal('batas_minimum', 12, 3)->default(0);
             $table->decimal('harga_per_satuan', 12, 2)->default(0);
             $table->dateTime('harga_diperbarui_at')->nullable();
-            $table->string('status')->default('Aktif');
             $table->timestamps();
         });
         Schema::create('menu', function (Blueprint $table) {
@@ -436,7 +435,6 @@ class WebWorkflowTest extends TestCase
                 'nama_menu' => 'Kopi Senja',
                 'kategori' => 'Minuman',
                 'harga_jual' => 20000,
-                'status' => 'Aktif',
             ])
             ->assertRedirect();
 
@@ -614,7 +612,6 @@ class WebWorkflowTest extends TestCase
 
         $bahan = Bahan::where('nama_bahan', 'Susu UHT')->firstOrFail();
         $this->assertSame(0.0, (float) $bahan->stok);
-        $this->assertSame('Aktif', $bahan->status);
 
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
         Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 20]);
@@ -645,6 +642,16 @@ class WebWorkflowTest extends TestCase
             'harga_per_satuan' => 10,
         ]);
 
+        $editResponse = $this->actingAs($manager)
+            ->get(route('manajer.bahan', ['edit_bahan_id' => $bahan->id]))
+            ->assertOk()
+            ->assertSee('<h2>Tambah bahan</h2>', false)
+            ->assertSee('<h2>Ubah bahan: Susu</h2>', false);
+        $this->assertLessThan(
+            strpos($editResponse->getContent(), '<h2>Ubah bahan: Susu</h2>'),
+            strpos($editResponse->getContent(), '<h2>Tambah bahan</h2>'),
+        );
+
         $this->actingAs($manager)
             ->get(route('manajer.bahan'))
             ->assertOk()
@@ -656,7 +663,7 @@ class WebWorkflowTest extends TestCase
             'satuan' => 'pcs',
             'batas_minimum' => 5,
             'harga_per_satuan' => 15,
-        ])->assertRedirect();
+        ])->assertRedirect(route('manajer.bahan'));
 
         $this->assertDatabaseHas('bahan', [
             'id' => $bahan->id,
@@ -666,6 +673,7 @@ class WebWorkflowTest extends TestCase
             'harga_per_satuan' => 15,
         ]);
         $this->assertNotNull($bahan->fresh()->harga_diperbarui_at);
+        $this->get(route('manajer.bahan'))->assertDontSee('Ubah bahan: Susu UHT');
 
         $this->delete(route('manajer.bahan.hapus', $bahan))->assertRedirect();
         $this->assertDatabaseMissing('bahan', ['id' => $bahan->id]);
@@ -705,7 +713,7 @@ class WebWorkflowTest extends TestCase
         $this->assertDatabaseHas('bahan', ['id' => $bahan->id, 'satuan' => 'ml']);
     }
 
-    public function test_manager_can_toggle_material_status_without_changing_existing_recipe_or_stock_history(): void
+    public function test_manager_can_toggle_menu_status_from_menu_list(): void
     {
         $manager = User::create([
             'nama' => 'Manajer',
@@ -716,39 +724,28 @@ class WebWorkflowTest extends TestCase
         $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 50]);
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
         Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 10]);
-        DB::table('stok_masuk')->insert([
-            'bahan_id' => $bahan->id,
-            'user_id' => $manager->id,
-            'tanggal' => '2026-11-15',
-            'jumlah' => 50,
-        ]);
 
         $this->actingAs($manager)
             ->get(route('manajer.bahan'))
             ->assertOk()
-            ->assertSee('Ubah')
-            ->assertSee('Nonaktifkan')
-            ->assertDontSee('Tidak dapat dihapus: ada stok atau riwayat.');
+            ->assertDontSee('Nonaktifkan')
+            ->assertDontSee('Aktifkan');
 
-        $this->patch(route('manajer.bahan.status', $bahan))
+        $this->get(route('manajer.menu'))
+            ->assertOk()
+            ->assertSee('Nonaktifkan');
+
+        $this->patch(route('manajer.menu.status', $menu))
             ->assertRedirect();
+        $this->assertSame('Nonaktif', $menu->fresh()->status);
+        $this->get(route('manajer.menu'))->assertSee('Aktifkan');
 
-        $this->assertSame('Nonaktif', $bahan->fresh()->status);
-        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
-        $this->assertDatabaseHas('stok_masuk', ['bahan_id' => $bahan->id]);
-
-        $this->post(route('manajer.resep.simpan'), [
-            'menu_id' => $menu->id,
-            'bahan' => [$bahan->id => 10],
-        ])->assertRedirect();
-        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
-
-        $this->patch(route('manajer.bahan.status', $bahan))
+        $this->patch(route('manajer.menu.status', $menu))
             ->assertRedirect();
-        $this->assertSame('Aktif', $bahan->fresh()->status);
+        $this->assertSame('Aktif', $menu->fresh()->status);
     }
 
-    public function test_inactive_material_cannot_be_added_to_a_new_recipe_or_stock_entry(): void
+    public function test_materials_have_no_status_and_can_be_added_to_recipes_and_stock_entries(): void
     {
         $manager = User::create([
             'nama' => 'Manajer',
@@ -756,36 +753,32 @@ class WebWorkflowTest extends TestCase
             'password' => Hash::make('password'),
             'role' => 'Manajer',
         ]);
-        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'status' => 'Nonaktif']);
+        $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml']);
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Habis']);
         $this->actingAs($manager);
 
         $this->get(route('manajer.menu'))
             ->assertOk()
-            ->assertSee('Latte')
-            ->assertDontSee('data-name="Susu"');
+            ->assertSee('Latte');
         $this->get(route('manajer.resep', ['menu_id' => $menu->id]))
             ->assertOk()
-            ->assertSee('Tidak ada bahan aktif')
-            ->assertDontSee('data-name="Susu"');
+            ->assertSee('data-name="Susu"', false);
         $this->get(route('manajer.stok-masuk'))
             ->assertOk()
-            ->assertSee('Tidak ada bahan aktif')
-            ->assertDontSee('Susu');
+            ->assertSee('Susu');
 
-        $this->from(route('manajer.resep', ['menu_id' => $menu->id]))
-            ->post(route('manajer.resep.simpan'), [
-                'menu_id' => $menu->id,
-                'bahan' => [$bahan->id => 10],
-            ])
-            ->assertSessionHasErrors('bahan');
-        $this->from(route('manajer.stok-masuk'))
-            ->post(route('manajer.stok-masuk.simpan'), [
-                'bahan_id' => $bahan->id,
-                'tanggal' => '2026-11-15',
-                'jumlah' => 10,
-            ])
-            ->assertSessionHasErrors('bahan_id');
+        $this->post(route('manajer.resep.simpan'), [
+            'menu_id' => $menu->id,
+            'bahan' => [$bahan->id => 10],
+        ])->assertRedirect();
+        $this->assertDatabaseHas('resep', ['menu_id' => $menu->id, 'bahan_id' => $bahan->id]);
+
+        $this->post(route('manajer.stok-masuk.simpan'), [
+            'bahan_id' => $bahan->id,
+            'tanggal' => '2026-11-15',
+            'jumlah' => 10,
+        ])->assertRedirect();
+        $this->assertDatabaseHas('stok_masuk', ['bahan_id' => $bahan->id]);
     }
 
     public function test_manager_can_create_menu_and_add_its_recipe_from_separate_pages(): void
@@ -806,8 +799,8 @@ class WebWorkflowTest extends TestCase
 
         $this->get(route('manajer.menu'))
             ->assertOk()
-            ->assertSee('<option>Minuman</option>', false)
-            ->assertSee('<option>Makanan</option>', false)
+            ->assertSee('<option value="Minuman"', false)
+            ->assertSee('<option value="Makanan"', false)
             ->assertDontSee('<option>Kopi</option>', false)
             ->assertSee('Tambah menu')
             ->assertDontSee('Formula resep');
@@ -865,6 +858,41 @@ class WebWorkflowTest extends TestCase
         $this->get($menuUrl)->assertSee('1 bahan');
     }
 
+    public function test_manager_can_edit_menu_in_separate_panel_and_form_closes_after_save(): void
+    {
+        $this->seed(KategoriMenuSeeder::class);
+        $manager = User::create([
+            'nama' => 'Manajer',
+            'no_hp' => '081111111111',
+            'password' => Hash::make('password'),
+            'role' => 'Manajer',
+        ]);
+        $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
+
+        $editResponse = $this->actingAs($manager)
+            ->get(route('manajer.menu', ['edit_menu_id' => $menu->id]))
+            ->assertOk()
+            ->assertSee('<h2>Tambah menu</h2>', false)
+            ->assertSee('<h2>Ubah menu: Latte</h2>', false);
+        $this->assertLessThan(
+            strpos($editResponse->getContent(), '<h2>Ubah menu: Latte</h2>'),
+            strpos($editResponse->getContent(), '<h2>Tambah menu</h2>'),
+        );
+
+        $this->put(route('manajer.menu.update', $menu), [
+            'nama_menu' => 'Latte Spesial',
+            'kategori' => 'Minuman',
+            'harga_jual' => 27000,
+        ])->assertRedirect(route('manajer.menu'));
+
+        $this->assertDatabaseHas('menu', [
+            'id' => $menu->id,
+            'nama_menu' => 'Latte Spesial',
+            'harga_jual' => 27000,
+        ]);
+        $this->get(route('manajer.menu'))->assertDontSee('Ubah menu: Latte Spesial');
+    }
+
     public function test_manager_can_delete_menu_without_order_history_and_its_recipe(): void
     {
         $manager = User::create([
@@ -880,7 +908,7 @@ class WebWorkflowTest extends TestCase
         $this->actingAs($manager)
             ->get(route('manajer.menu'))
             ->assertOk()
-            ->assertSee('Hapus');
+            ->assertDontSee('Hapus');
 
         $this->delete(route('manajer.menu.hapus', $menu))
             ->assertRedirect(route('manajer.menu'));
@@ -916,6 +944,12 @@ class WebWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($manager)
+            ->get(route('manajer.menu'))
+            ->assertOk()
+            ->assertDontSee('Hapus')
+            ->assertDontSee('Tidak dapat dihapus: ada riwayat pesanan.');
+
+        $this->actingAs($manager)
             ->delete(route('manajer.menu.hapus', $menu))
             ->assertRedirect(route('manajer.menu'))
             ->assertSessionHas('error');
@@ -935,6 +969,12 @@ class WebWorkflowTest extends TestCase
         $bahan = Bahan::create(['nama_bahan' => 'Susu', 'satuan' => 'ml', 'stok' => 100]);
         $menu = Menu::create(['nama_menu' => 'Latte', 'harga_jual' => 25000, 'status' => 'Aktif']);
         Resep::create(['menu_id' => $menu->id, 'bahan_id' => $bahan->id, 'takaran' => 20]);
+
+        $this->actingAs($manager)
+            ->get(route('manajer.resep', ['menu_id' => $menu->id]))
+            ->assertOk()
+            ->assertDontSee('Hapus')
+            ->assertDontSee('Aksi');
 
         $this->actingAs($manager)
             ->delete(route('manajer.resep.hapus', $menu))

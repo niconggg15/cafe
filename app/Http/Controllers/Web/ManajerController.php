@@ -71,10 +71,15 @@ class ManajerController extends Controller
         ]);
     }
 
-    public function bahan(): View
+    public function bahan(Request $request): View
     {
+        $editBahan = $request->filled('edit_bahan_id')
+            ? Bahan::withCount(['resep', 'stokMasuk'])->findOrFail($request->query('edit_bahan_id'))
+            : null;
+
         return view('manajer.bahan', [
             'bahans' => Bahan::withCount(['resep', 'stokMasuk'])->orderBy('nama_bahan')->paginate(20),
+            'editBahan' => $editBahan,
         ]);
     }
 
@@ -93,7 +98,6 @@ class ManajerController extends Controller
 
         Bahan::create($data + [
             'stok' => 0,
-            'status' => 'Aktif',
             'harga_diperbarui_at' => now(),
         ]);
 
@@ -126,14 +130,14 @@ class ManajerController extends Controller
         }
         $bahan->update($data);
 
-        return back()->with('success', 'Data bahan berhasil diperbarui.');
+        return redirect()->route('manajer.bahan')->with('success', 'Data bahan berhasil diperbarui.');
     }
 
     public function hapusBahan(Bahan $bahan): RedirectResponse
     {
         if ((float) $bahan->stok > 0 || $bahan->resep()->exists() || $bahan->stokMasuk()->exists()) {
             return redirect()->route('manajer.bahan')
-                ->with('error', 'Bahan tidak dapat dihapus karena masih memiliki stok atau riwayat. Nonaktifkan bahan agar tidak digunakan lagi.');
+                ->with('error', 'Bahan tidak dapat dihapus karena masih memiliki stok atau riwayat.');
         }
 
         $bahan->delete();
@@ -141,19 +145,16 @@ class ManajerController extends Controller
         return redirect()->route('manajer.bahan')->with('success', 'Data bahan berhasil dihapus.');
     }
 
-    public function ubahStatusBahan(Bahan $bahan): RedirectResponse
+    public function menu(Request $request): View
     {
-        $bahan->status = $bahan->status === 'Aktif' ? 'Nonaktif' : 'Aktif';
-        $bahan->save();
+        $editMenu = $request->filled('edit_menu_id')
+            ? Menu::findOrFail($request->query('edit_menu_id'))
+            : null;
 
-        return back()->with('success', "Bahan {$bahan->nama_bahan} sekarang {$bahan->status}.");
-    }
-
-    public function menu(): View
-    {
         return view('manajer.menu', [
             'menus' => Menu::withCount(['resep', 'detailPesanan'])->orderBy('nama_menu')->paginate(20),
             'kategoriMenus' => DB::table('kategori_menu')->orderBy('nama_kategori')->pluck('nama_kategori'),
+            'editMenu' => $editMenu,
         ]);
     }
 
@@ -164,7 +165,6 @@ class ManajerController extends Controller
             'nama_menu' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'string', 'exists:kategori_menu,nama_kategori'],
             'harga_jual' => ['required', 'numeric', 'min:0'],
-            'status' => [$menuBaru ? 'sometimes' : 'required', 'in:Aktif,Habis,Nonaktif'],
         ]);
         $data['nama_menu'] = trim($data['nama_menu']);
 
@@ -180,6 +180,19 @@ class ManajerController extends Controller
             ->with('success', $menuBaru
                 ? 'Menu berhasil dibuat. Lengkapi resepnya di halaman Kelola Resep.'
                 : 'Data menu berhasil disimpan.');
+    }
+
+    public function ubahStatusMenu(Menu $menu, MenuStatusService $menuStatus): RedirectResponse
+    {
+        $menu->status = $menu->status === 'Nonaktif' ? 'Aktif' : 'Nonaktif';
+        $menu->save();
+
+        if ($menu->status === 'Aktif') {
+            $menuStatus->segarkan([$menu->id]);
+            $menu->refresh();
+        }
+
+        return back()->with('success', "Menu {$menu->nama_menu} sekarang {$menu->status}.");
     }
 
     public function hapusMenu(Menu $menu): RedirectResponse
@@ -206,7 +219,6 @@ class ManajerController extends Controller
             'menus' => $menus,
             'selectedMenu' => $selectedMenu,
             'bahans' => Bahan::orderBy('nama_bahan')->get(),
-            'bahansAktif' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
         ]);
     }
 
@@ -232,14 +244,6 @@ class ManajerController extends Controller
         if (Bahan::whereIn('id', $bahanIds)->count() !== $bahanIds->count()) {
             return back()->withErrors(['bahan' => 'Salah satu bahan resep tidak ditemukan.'])->withInput();
         }
-        $bahanNonaktifBaru = Bahan::whereIn('id', $bahanIds)
-            ->where('status', 'Nonaktif')
-            ->pluck('id')
-            ->diff(Resep::where('menu_id', $data['menu_id'])->whereIn('bahan_id', $bahanIds)->pluck('bahan_id'));
-        if ($bahanNonaktifBaru->isNotEmpty()) {
-            return back()->withErrors(['bahan' => 'Bahan nonaktif tidak bisa ditambahkan ke resep baru.'])->withInput();
-        }
-
         DB::transaction(function () use ($data, $resep, $menuStatus) {
             Resep::where('menu_id', $data['menu_id'])->delete();
             foreach ($resep as $item) {
@@ -282,7 +286,7 @@ class ManajerController extends Controller
     public function stokMasuk(): View
     {
         return view('manajer.stok-masuk', [
-            'bahans' => Bahan::where('status', 'Aktif')->orderBy('nama_bahan')->get(),
+            'bahans' => Bahan::orderBy('nama_bahan')->get(),
             'riwayat' => StokMasuk::with('bahan', 'user')->latest('tanggal')->latest()->paginate(20),
         ]);
     }
@@ -290,7 +294,7 @@ class ManajerController extends Controller
     public function simpanStokMasuk(Request $request, MenuStatusService $menuStatus): RedirectResponse
     {
         $data = $request->validate([
-            'bahan_id' => ['required', 'exists:bahan,id,status,Aktif'],
+            'bahan_id' => ['required', 'exists:bahan,id'],
             'tanggal' => ['required', 'date'],
             'jumlah' => ['required', 'numeric', 'gt:0'],
         ]);

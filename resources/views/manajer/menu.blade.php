@@ -28,25 +28,13 @@
                             <td>
                                 <div class="table-actions">
                                     <a class="button button-small button-secondary" href="{{ route('manajer.resep', ['menu_id' => $menu->id]) }}">Kelola Resep</a>
-                                    <details class="edit-details">
-                                        <summary class="button button-small button-secondary">Ubah</summary>
-                                        <form class="stack-form" method="POST" action="{{ route('manajer.menu.update', $menu) }}">
-                                            @csrf @method('PUT')
-                                            <label>Nama menu<input name="nama_menu" value="{{ $menu->nama_menu }}" required></label>
-                                            <label>Kategori<select name="kategori" required>@foreach ($kategoriMenus as $kategori)<option @selected($menu->kategori === $kategori)>{{ $kategori }}</option>@endforeach</select></label>
-                                            <label>Harga jual<input type="number" name="harga_jual" value="{{ $menu->harga_jual }}" min="0" step="1" required></label>
-                                            <label>Status<select name="status">@foreach (['Aktif', 'Habis', 'Nonaktif'] as $status)<option @selected($menu->status === $status)>{{ $status }}</option>@endforeach</select></label>
-                                            <button class="button button-primary button-small" type="submit">Simpan</button>
-                                        </form>
-                                    </details>
-                                    @if ((int) $menu->detail_pesanan_count === 0)
-                                        <form method="POST" action="{{ route('manajer.menu.hapus', $menu) }}" onsubmit="return confirm('Hapus menu ini beserta resepnya?')">
-                                            @csrf @method('DELETE')
-                                            <button class="button button-small button-danger" type="submit">Hapus</button>
-                                        </form>
-                                    @else
-                                        <span class="panel-hint">Tidak dapat dihapus: ada riwayat pesanan.</span>
-                                    @endif
+                                    <a class="button button-small button-secondary" href="{{ route('manajer.menu', ['edit_menu_id' => $menu->id, 'page' => $menus->currentPage()]) }}#edit-menu">Ubah</a>
+                                    <form method="POST" action="{{ route('manajer.menu.status', $menu) }}">
+                                        @csrf @method('PATCH')
+                                        <button class="button button-small {{ $menu->status === 'Nonaktif' ? 'button-primary' : 'button-secondary' }}" type="submit">
+                                            {{ $menu->status === 'Nonaktif' ? 'Aktifkan' : 'Nonaktifkan' }}
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -58,15 +46,32 @@
             </div>
             @if ($menus->hasPages())<div class="pagination">{{ $menus->links() }}</div>@endif
         </section>
-        <section class="panel manager-form">
-            <h2>Tambah menu</h2>
-            <form method="POST" action="{{ route('manajer.menu.simpan') }}" class="stack-form">
-                @csrf
-                <label>Nama menu<input name="nama_menu" value="{{ old('nama_menu') }}" maxlength="255" required></label>
-                <label>Kategori<select name="kategori" required>@foreach ($kategoriMenus as $kategori)<option>{{ $kategori }}</option>@endforeach</select></label>
-                <label>Harga jual (Rp)<input type="number" name="harga_jual" min="0" step="1" required></label>
-                <button class="button button-primary" type="submit">Simpan</button>
-            </form>
-        </section>
+        <div class="manager-form-stack">
+            <section class="panel manager-form" id="form-menu">
+                <h2>Tambah menu</h2>
+                <form method="POST" action="{{ route('manajer.menu.simpan') }}" class="stack-form">
+                    @csrf
+                    <label>Nama menu<input name="nama_menu" value="{{ $editMenu ? '' : old('nama_menu') }}" maxlength="255" required></label>
+                    <label>Kategori<select name="kategori" required><option value="">Pilih kategori</option>@foreach ($kategoriMenus as $kategori)<option value="{{ $kategori }}" @selected(! $editMenu && old('kategori') === $kategori)>{{ $kategori }}</option>@endforeach</select></label>
+                    <label>Harga jual (Rp)<input type="number" name="harga_jual" value="{{ $editMenu ? '' : old('harga_jual') }}" min="0" step="1" required></label>
+                    <button class="button button-primary" type="submit">Simpan</button>
+                </form>
+            </section>
+            @if ($editMenu)
+                <section class="panel manager-form" id="edit-menu">
+                    <h2>Ubah menu: {{ $editMenu->nama_menu }}</h2>
+                    <form method="POST" action="{{ route('manajer.menu.update', $editMenu) }}" class="stack-form">
+                        @csrf @method('PUT')
+                        <label>Nama menu<input name="nama_menu" value="{{ old('nama_menu', $editMenu->nama_menu) }}" maxlength="255" required></label>
+                        <label>Kategori<select name="kategori" required>@foreach ($kategoriMenus as $kategori)<option value="{{ $kategori }}" @selected(old('kategori', $editMenu->kategori) === $kategori)>{{ $kategori }}</option>@endforeach</select></label>
+                        <label>Harga jual (Rp)<input type="number" name="harga_jual" value="{{ old('harga_jual', $editMenu->harga_jual) }}" min="0" step="1" required></label>
+                        <div class="table-actions">
+                            <button class="button button-primary" type="submit">Simpan Perubahan</button>
+                            <a class="button button-secondary" href="{{ route('manajer.menu') }}#form-menu">Batal</a>
+                        </div>
+                    </form>
+                </section>
+            @endif
+        </div>
     </div>
 @endsection

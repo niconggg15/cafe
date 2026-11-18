@@ -167,12 +167,9 @@ label span { color: var(--muted); font-weight: 400; }
 .dashboard-legend-item { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
 .dashboard-legend-mark { width: 14px; height: 3px; background: var(--dashboard-series-color); }
 .manager-form { padding: 14px; }
+.manager-form-stack { display: grid; align-self: start; gap: 16px; }
 .manager-form .stack-form { gap: 11px; }
 .manager-form .button { width: 100%; }
-.edit-details summary { display: inline-flex; cursor: pointer; list-style: none; }
-.edit-details summary::-webkit-details-marker { display: none; }
-.edit-details[open] { min-width: 215px; padding: 8px; border: 1px solid var(--line); background: #fff; }
-.edit-details .stack-form { margin-top: 8px; }
 .recipe-table { margin-bottom: 15px; }
 .recipe-add-row { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 9px; margin-top: 18px; }
 .recipe-amount-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
@@ -248,11 +245,6 @@ label span { color: var(--muted); font-weight: 400; }
 .cashier-coffee-page .reset-password-workspace .form-panel > h2 { margin-bottom: 6px; }
 .cashier-coffee-page .reset-password-workspace .panel-hint { margin-bottom: 12px; }
 .manager-menu-workspace .table-actions { flex-wrap: wrap; white-space: normal; }
-.manager-menu-workspace .edit-details[open] { display: block; flex: 1 1 100%; width: 340px; max-width: 100%; min-width: 0; padding: 12px; border-color: var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 8px 20px rgb(83 55 35 / 8%); }
-.manager-menu-workspace .edit-details .stack-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.manager-menu-workspace .edit-details label { min-width: 0; white-space: normal; }
-.manager-menu-workspace .edit-details input, .manager-menu-workspace .edit-details select { width: 100%; min-width: 0; }
-.manager-menu-workspace .edit-details .button { grid-column: 1 / -1; width: 100%; }
 .manager-menu-workspace { grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr); }
 
 @media (max-width: 1100px) {
@@ -261,7 +253,7 @@ label span { color: var(--muted); font-weight: 400; }
     .manager-workspace, .manager-workspace-wide, .orders-workspace, .receipt-workspace { grid-template-columns: 1fr; }
     .cashier-coffee-page .reset-password-workspace { grid-template-columns: 1fr; }
     .manager-menu-workspace { grid-template-columns: 1fr; }
-    .manager-form { grid-row: 1; }
+    .manager-form-stack { grid-row: 1; }
     .order-panel { position: static; min-height: 0; }
 }
 @media (max-width: 800px) {

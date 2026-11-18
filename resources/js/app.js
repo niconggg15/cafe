@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateRecipeState() {
         if (!emptyState) return;
 
-        const materialCount = rows.querySelectorAll('[data-recipe-row]:not([hidden])').length;
+        const materialCount = rows.querySelectorAll('[data-recipe-row]').length;
         emptyState.textContent = materialCount > 0
             ? 'Bahan sudah ditambahkan. Klik Simpan Resep untuk menyimpannya.'
             : 'Resep belum dibuat untuk menu ini. Tambahkan minimal satu bahan dan takaran untuk membuat formulanya.';
@@ -122,26 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateAvailableMaterials() {
         const usedIds = new Set(
-            [...rows.querySelectorAll('[data-recipe-row]:not([hidden])')].map((row) => row.dataset.bahanId)
+            [...rows.querySelectorAll('[data-recipe-row]')].map((row) => row.dataset.bahanId)
         );
         [...materialSelect.options].forEach((option) => {
             if (option.value) option.disabled = usedIds.has(option.value);
         });
     }
-
-    function removeRecipeRow(button) {
-        const row = button.closest('[data-recipe-row]');
-        const input = row.querySelector('input');
-        input.value = '';
-        input.disabled = true;
-        row.hidden = true;
-        updateAvailableMaterials();
-        updateRecipeState();
-    }
-
-    rows.querySelectorAll('[data-remove-recipe]').forEach((button) => {
-        button.addEventListener('click', () => removeRecipeRow(button));
-    });
 
     materialSelect.addEventListener('change', updateSelectedUnit);
 
@@ -176,18 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
             amountCell.append(input);
             const unit = document.createElement('td');
             unit.textContent = option.dataset.unit;
-            const action = document.createElement('td');
-            const remove = document.createElement('button');
-            remove.className = 'button button-small button-secondary';
-            remove.type = 'button';
-            remove.textContent = 'Hapus';
-            remove.addEventListener('click', () => removeRecipeRow(remove));
-            action.append(remove);
-            row.append(name, amountCell, unit, action);
+            row.append(name, amountCell, unit);
             rows.append(row);
         }
 
-        row.hidden = false;
         const input = row.querySelector('input');
         input.disabled = false;
         input.value = String(amount);

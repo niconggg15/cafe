@@ -40,10 +40,10 @@ Route::middleware(['auth', 'wajib-ganti-password'])->group(function () {
         Route::post('/bahan', [ManajerController::class, 'simpanBahan'])->name('bahan.simpan');
         Route::put('/bahan/{bahan}', [ManajerController::class, 'ubahBahan'])->name('bahan.update');
         Route::delete('/bahan/{bahan}', [ManajerController::class, 'hapusBahan'])->name('bahan.hapus');
-        Route::patch('/bahan/{bahan}/status', [ManajerController::class, 'ubahStatusBahan'])->name('bahan.status');
         Route::get('/menu', [ManajerController::class, 'menu'])->name('menu');
         Route::post('/menu', [ManajerController::class, 'simpanMenu'])->name('menu.simpan');
         Route::put('/menu/{menu}', [ManajerController::class, 'simpanMenu'])->name('menu.update');
+        Route::patch('/menu/{menu}/status', [ManajerController::class, 'ubahStatusMenu'])->name('menu.status');
         Route::delete('/menu/{menu}', [ManajerController::class, 'hapusMenu'])->name('menu.hapus');
         Route::get('/resep', [ManajerController::class, 'resep'])->name('resep');
         Route::post('/resep', [ManajerController::class, 'simpanResep'])->name('resep.simpan');

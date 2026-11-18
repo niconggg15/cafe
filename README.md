@@ -88,6 +88,7 @@ Akun pelanggan demo untuk mencoba menu **Reset Password Pelanggan** pada Kasir:
 - Impor CSV mengubah `kg` ke `g` dan `liter` ke `ml`; harga per satuan dibagi dengan faktor konversinya.
 - Pencocokan nama bahan resep dilakukan persis (tanpa membedakan kapital/spasi tepi) terlebih dahulu. Jika tidak cocok, `similar_text` hanya dipakai untuk satu kandidat terbaik dengan kemiripan minimal 80%; kandidat yang hilang atau ambigu dilewati dan dilaporkan.
 - Menu menjadi `Habis` ketika stok salah satu bahan tidak cukup untuk membuat satu porsi. Menu `Nonaktif` tidak diaktifkan otomatis.
+- Status `Aktif`/`Nonaktif` dikelola dari halaman Menu; bahan tidak memiliki aksi status tersebut.
 - Bahan ditandai menipis jika stoknya kurang dari atau sama dengan batas minimum.
 - Jika sinkronisasi Supplier gagal, sistem melaporkan kegagalan dan tidak mengganti harga yang tersimpan.
 

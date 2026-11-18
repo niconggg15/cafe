@@ -7,7 +7,7 @@
 @section('content')
     <section class="panel form-panel">
         <div class="panel-head panel-head-inline">
-            <div><h2>Resep menu</h2><p class="panel-hint">Pilih menu untuk menambah, mengubah, atau menghapus bahan resep.</p></div>
+            <div><h2>Resep menu</h2><p class="panel-hint">Pilih menu untuk menambah atau mengubah bahan resep.</p></div>
             @if ($menus->isNotEmpty())
                 <form method="GET" action="{{ route('manajer.resep') }}" class="inline-form">
                     <label for="recipe-menu">Pilih menu</label>
@@ -24,8 +24,8 @@
             <p class="empty-state">Belum ada menu. <a href="{{ route('manajer.menu') }}">Tambah menu</a> sebelum menyusun resep.</p>
         @elseif ($bahans->isEmpty())
             <p class="empty-state">Belum ada bahan. <a href="{{ route('manajer.bahan') }}">Tambah bahan</a> sebelum menyusun resep.</p>
-        @elseif ($selectedMenu->resep->isEmpty() && $bahansAktif->isEmpty())
-            <p class="empty-state">Tidak ada bahan aktif. Aktifkan bahan di <a href="{{ route('manajer.bahan') }}">Kelola Bahan</a> untuk membuat resep.</p>
+        @elseif ($selectedMenu->resep->isEmpty() && $bahans->isEmpty())
+            <p class="empty-state">Belum ada bahan. <a href="{{ route('manajer.bahan') }}">Tambah bahan</a> untuk membuat resep.</p>
         @else
             @php($resepForm = old('bahan', $selectedMenu->resep->mapWithKeys(fn ($resep) => [$resep->bahan_id => $resep->takaran])->all()))
             @if ($selectedMenu->resep->isEmpty())
@@ -36,7 +36,7 @@
                 <input type="hidden" name="menu_id" value="{{ $selectedMenu->id }}">
                 <div class="table-wrap">
                     <table class="recipe-table">
-                        <thead><tr><th>Bahan</th><th>Takaran</th><th>Satuan dasar</th><th>Aksi</th></tr></thead>
+                        <thead><tr><th>Bahan</th><th>Takaran</th><th>Satuan dasar</th></tr></thead>
                         <tbody id="recipe-rows">
                         @foreach ($bahans as $bahan)
                             @php($takaran = $resepForm[$bahan->id] ?? null)
@@ -45,19 +45,18 @@
                                     <td>{{ $bahan->nama_bahan }}</td>
                                     <td><input class="table-input" type="number" name="bahan[{{ $bahan->id }}]" value="{{ $takaran }}" min="0" step="0.001" required></td>
                                     <td>{{ $bahan->satuan }}</td>
-                                    <td><button class="button button-small button-secondary" type="button" data-remove-recipe>Hapus</button></td>
                                 </tr>
                             @endif
                         @endforeach
                         </tbody>
                     </table>
                 </div>
-                @if ($bahansAktif->isNotEmpty())
+                @if ($bahans->isNotEmpty())
                     <div class="recipe-add-row">
                         <label>Tambah bahan ke resep
                             <select id="recipe-material" required>
                                 <option value="">Pilih bahan</option>
-                                @foreach ($bahansAktif as $bahan)
+                                @foreach ($bahans as $bahan)
                                     <option value="{{ $bahan->id }}" data-name="{{ $bahan->nama_bahan }}" data-unit="{{ $bahan->satuan }}">{{ $bahan->nama_bahan }}</option>
                                 @endforeach
                             </select>
@@ -71,17 +70,11 @@
                         <button class="button button-secondary" type="button" id="add-recipe-material">Tambah</button>
                     </div>
                 @else
-                    <p class="empty-state">Semua bahan yang bisa ditambahkan berstatus nonaktif. Bahan yang sudah ada pada resep tetap dapat diubah atau dihapus.</p>
+                    <p class="empty-state">Belum ada bahan yang dapat ditambahkan.</p>
                 @endif
             </form>
             <div class="table-actions">
                 <button class="button button-primary" type="submit" form="recipe-form">Simpan Resep</button>
-                @if ($selectedMenu->resep->isNotEmpty())
-                    <form method="POST" action="{{ route('manajer.resep.hapus', $selectedMenu) }}" onsubmit="return confirm('Hapus seluruh resep? Menu akan berstatus Habis.')">
-                        @csrf @method('DELETE')
-                        <button class="button button-danger" type="submit">Hapus Resep</button>
-                    </form>
-                @endif
             </div>
         @endif
     </section>

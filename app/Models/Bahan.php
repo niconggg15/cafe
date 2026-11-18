@@ -11,7 +11,7 @@ class Bahan extends Model
 
     protected $table = 'bahan';
 
-    protected $fillable = ['nama_bahan', 'satuan', 'stok', 'batas_minimum', 'harga_per_satuan', 'harga_diperbarui_at', 'status'];
+    protected $fillable = ['nama_bahan', 'satuan', 'stok', 'batas_minimum', 'harga_per_satuan', 'harga_diperbarui_at'];
 
     protected $casts = ['harga_diperbarui_at' => 'datetime'];
 

@@ -128,7 +128,6 @@ class ImporDataAwal extends Command
             ];
             if (! $bahan->exists) {
                 $values['batas_minimum'] = 0;
-                $values['status'] = 'Aktif';
             }
 
             $bahan->fill($values);
