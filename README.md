@@ -133,4 +133,4 @@ Klaim di bawah ini berdasarkan implementasi web yang ada. Butir 4 dan 7 adalah b
 - Dokumen kebutuhan UKK: `docs/perancangan-annisa/UKK_RPL_2026-2027_Soal_3_Varian_C_Kafe (1).pdf`.
 - Dokumentasi Laravel 9: <https://laravel.com/docs/9.x>.
 - Kode, migration, seeder, dan pengujian pada repositori ini digunakan untuk memeriksa klaim self-check.
-- Copilot (AI) membantu menyusun dan merapikan README berdasarkan PDF dan kode proyek. Isi dan status fitur dicocokkan kembali dengan berkas proyek; AI tidak digunakan untuk mengklaim fitur APK yang belum ada.
+- Copilot dan Claude (AI) membantu menyusun serta merapikan README berdasarkan PDF dan kode proyek. Isi dan status fitur dicocokkan kembali dengan berkas proyek; AI tidak digunakan untuk mengklaim fitur APK yang belum ada.
