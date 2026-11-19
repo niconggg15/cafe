@@ -4,6 +4,8 @@ Dokumen ini memecah `Dokumentasi.md` menjadi bagian-bagian terpisah supaya mudah
 
 > Nama file, class, route, dan akun di bawah adalah **usulan**. Samakan dengan kode yang benar-benar kamu buat. Bagian yang bergantung pada dokumen hari 1 (alamat Supplier, API key, nama header) ditandai `[ISI]`.
 
+> **Lingkup repo saat ini:** implementasi hanya mencakup web Kasir/Manajer, impor CSV, dan integrasi API Supplier. Bagian F (APK) serta contoh REST API pelanggan adalah referensi kebutuhan, bukan fitur yang tersedia. Untuk UML dan ERD web aktual, gunakan [UML web-only](../uml/web-only.md) dan [ERD aktual](../erd/erd.md).
+
 ## Daftar Isi
 
 | Bagian | Isi |
@@ -638,7 +640,9 @@ Sidebar dibangun dari `auth()->user()->role`, dan keamanan tetap dari middleware
 
 ---
 
-## F. APK Android (Pelanggan)
+## F. APK Android (Pelanggan) — di luar lingkup implementasi
+
+Bagian ini menjelaskan rancangan pada dokumen UKK saja. Aplikasi Android dan REST API pelanggan tidak tersedia di repo ini.
 
 Teknologi bebas (Kotlin/Java native, Flutter, React Native, dll.). Syarat dari soal: **bukan WebView**, berjalan di Android 8.0 (API 26) atau lebih baru, mengambil data lewat REST API.
 

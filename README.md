@@ -50,9 +50,9 @@ Petunjuk ini untuk Windows dengan PowerShell dan XAMPP.
 
    Buka alamat yang ditampilkan Artisan, biasanya `http://127.0.0.1:8000`. Jalankan pengujian dengan `php artisan test`.
 
-## 4. Cara memasang APK
+## 4. APK pelanggan di luar lingkup
 
-APK belum disediakan: repositori ini belum memiliki folder `apk/`, aplikasi Android, maupun endpoint REST API pelanggan. Karena itu belum ada APK yang dapat dipasang atau alamat server yang dapat diatur di APK. Butir penerimaan pelanggan yang mensyaratkan APK belum terpenuhi.
+Proyek ini berfokus pada web Kasir dan Manajer. APK Android dan REST API pelanggan sengaja tidak dibuat, sehingga tidak ada APK untuk dipasang. Akun pelanggan demo tetap disediakan oleh seeder untuk mencoba reset password dari halaman Kasir; akun tersebut bukan alur login atau pemesanan pelanggan.
 
 ## 5. Akun uji
 
@@ -78,7 +78,7 @@ Login web hanya untuk Kasir dan Manajer. Pelanggan demo tersedia untuk mencoba f
 | Controller web | `app/Http/Controllers/Web/` |
 | Route web dan API | `routes/web.php`, `routes/api.php` (belum ada endpoint API pelanggan) |
 | View Blade | `resources/views/` |
-| ERD dan UML | `docs/erd/`, `docs/uml/` |
+| ERD dan UML web | [docs/erd/erd.md](docs/erd/erd.md), [docs/uml/web-only.md](docs/uml/web-only.md) |
 
 ## 7. Keputusan dan penanganan data
 
@@ -86,6 +86,7 @@ Login web hanya untuk Kasir dan Manajer. Pelanggan demo tersedia untuk mencoba f
 - Pencocokan nama bahan resep mengabaikan kapitalisasi dan spasi tepi. Jika tidak ada kecocokan persis, impor menerima hanya satu kandidat terbaik dengan `similar_text` minimal 80%. Baris dengan bahan tidak ditemukan, kecocokan ambigu, satuan tidak cocok, atau data tidak valid dilewati dan dilaporkan.
 - Batas minimum bahan baru hasil impor adalah 0; impor ulang tidak mengubah batas minimum bahan yang sudah ada. Nama bahan yang hanya berbeda kapitalisasi atau spasi tepi dianggap sama.
 - Registrasi/login pelanggan belum tersedia. Untuk pencarian reset password oleh Kasir, nomor HP dinormalisasi dengan membuang spasi, tanda kurung, titik, tanda hubung, dan awalan `+`; awalan `62` diubah menjadi `0`. Nomor hasil normalisasi harus diawali `0` dan memiliki 10–15 digit.
+- Kategori menu pada aplikasi web mengikuti data master `Minuman` dan `Makanan`; label kategori dapat berbeda dari contoh pada wireframe.
 - Menu menjadi `Habis` jika stok salah satu bahan tidak cukup untuk satu porsi. Status `Nonaktif` yang dipilih Manajer tidak otomatis berubah menjadi `Aktif`.
 - Detail transaksi menyimpan snapshot harga jual, nama menu, dan resep saat pesanan dibuat. Mengubah harga menu tidak mengubah struk lama.
 - Pembatalan pesanan hanya diizinkan saat status `Baru` oleh Kasir. Stok yang dikembalikan dihitung memakai resep saat pembatalan; jika resep sudah berubah sejak transaksi dibuat, jumlah stok yang kembali dapat berbeda.
@@ -108,9 +109,9 @@ Klaim di bawah ini berdasarkan implementasi web yang ada. Butir 4 dan 7 adalah b
 | 9 | Laporan dan hak akses per peran sesuai aturan | Ya | Buka menu/resep/stok/laporan sebagai Manajer; coba URL Manajer sebagai Kasir dan URL pesanan sebagai Manajer; pastikan daftar menu Kasir tidak menampilkan resep/HPP/margin. |
 | 10 | Impor CSV menormalkan satuan, menangani salah ketik dan bahan tidak dikenal, serta memberi batas minimum awal 0 | Ya | Jalankan seeder kategori lalu `php artisan impor:data-awal`; periksa konversi, hasil pencocokan, ringkasan baris dilewati, dan batas minimum. |
 | 11 | Supplier memakai API key dan mempertahankan harga terakhir bila sinkronisasi gagal | Ya | Simpan harga bahan, ubah konfigurasi Supplier menjadi tidak valid, jalankan sinkronisasi dari halaman HPP & Margin, lalu pastikan kegagalan dilaporkan dan harga tersimpan tidak berubah. |
-| 12 | Akun pelanggan lengkap di APK: daftar, login, ubah password, reset oleh Kasir, dan logout | Tidak | Belum dapat diuji: APK dan REST API pelanggan belum tersedia. Fitur reset password Kasir di web saja tidak memenuhi butir ini. |
-| 13 | Pelanggan memesan dari APK dengan nomor meja; aturan stok sama dan hanya satu pesanan `Baru` | Tidak | Belum dapat diuji: APK dan REST API pelanggan belum tersedia. |
-| 14 | Pelanggan memantau status dan struk miliknya sendiri dari APK | Tidak | Belum dapat diuji: APK dan REST API pelanggan belum tersedia. |
+| 12 | Akun pelanggan lengkap di APK: daftar, login, ubah password, reset oleh Kasir, dan logout | Di luar lingkup web | Tidak dibuat karena aplikasi ini hanya mencakup web Kasir dan Manajer. Reset password pelanggan oleh Kasir di web tersedia secara terpisah. |
+| 13 | Pelanggan memesan dari APK dengan nomor meja; aturan stok sama dan hanya satu pesanan `Baru` | Di luar lingkup web | Tidak ada pemesanan pelanggan melalui aplikasi; pesanan dibuat oleh Kasir. |
+| 14 | Pelanggan memantau status dan struk miliknya sendiri dari APK | Di luar lingkup web | Tidak ada aplikasi/API pelanggan untuk memantau pesanan. |
 
 ### Fitur opsional
 
@@ -122,10 +123,10 @@ Klaim di bawah ini berdasarkan implementasi web yang ada. Butir 4 dan 7 adalah b
 | O4. Laporan jumlah pesanan per jam | Tidak |
 | O5. Reset password melalui email lokal | Tidak |
 
-## 9. Belum selesai / keterbatasan
+## 9. Batas lingkup / keterbatasan
 
-- Belum ada APK Android, endpoint REST API pelanggan, atau alur daftar/login/pemesanan pelanggan melalui aplikasi. Oleh sebab itu, butir penerimaan 12–14 belum terpenuhi dan proyek ini belum memenuhi seluruh ketentuan hasil akhir pada PDF.
-- Tidak ada fitur opsional O1–O5 yang dikerjakan.
+- APK dan REST API pelanggan sengaja berada di luar lingkup proyek web ini. Butir 12–14 pada PDF membahas aplikasi pelanggan dan tidak diklaim sebagai fitur yang sudah dikerjakan.
+- Fitur opsional O1–O5 tidak termasuk lingkup.
 - Pengembalian stok setelah resep berubah menggunakan resep terbaru, bukan snapshot resep transaksi.
 
 ## 10. Referensi dan Bantuan

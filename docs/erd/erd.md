@@ -1,6 +1,6 @@
-# ERD Kedai Kopi Senja
+# ERD Implementasi Web Kedai Kopi Senja
 
-ERD ini dipetakan dari migration yang ada di repo, termasuk rename tabel domain ke nama singular.
+ERD ini mencerminkan skema migration yang dipakai aplikasi web saat ini. Tidak ada relasi pesanan ke pelanggan: pesanan web dicatat oleh Kasir. Akun dengan peran `Pelanggan` tetap ada untuk data demo dan fitur reset password oleh Kasir.
 
 ```mermaid
 erDiagram
@@ -12,7 +12,7 @@ erDiagram
         timestamp email_verified_at "nullable"
         string password
         string remember_token "nullable"
-        string no_hp UK
+        string no_hp UK "nullable; diwajibkan aplikasi untuk pelanggan"
         enum role "Kasir, Manajer, Pelanggan"
         boolean wajib_ganti_password
         timestamp created_at
@@ -27,6 +27,15 @@ erDiagram
         decimal batas_minimum "12,3; default 0"
         decimal harga_per_satuan "12,2; default 0"
         datetime harga_diperbarui_at "nullable"
+        string status "default Aktif; tidak digunakan alur web"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    KATEGORI_MENU {
+        bigint id PK
+        string kode_kategori UK
+        string nama_kategori UK
         timestamp created_at
         timestamp updated_at
     }
@@ -34,9 +43,9 @@ erDiagram
     MENU {
         bigint id PK
         string nama_menu
+        string kategori "string; divalidasi terhadap master kategori"
         decimal harga_jual "12,2"
         enum status "Aktif, Habis, Nonaktif"
-        enum kategori "Kopi, Non-kopi, Makanan"
         timestamp created_at
         timestamp updated_at
     }
@@ -62,7 +71,6 @@ erDiagram
 
     PESANAN {
         bigint id PK
-        bigint pelanggan_id FK "nullable"
         bigint kasir_id FK "nullable"
         tinyint no_meja "unsigned; 1-10"
         enum metode_bayar "Tunai, QRIS"
@@ -87,7 +95,6 @@ erDiagram
         timestamp updated_at
     }
 
-    USERS o|--o{ PESANAN : "pelanggan_id"
     USERS o|--o{ PESANAN : "kasir_id"
     USERS ||--o{ STOK_MASUK : "user_id"
     BAHAN ||--o{ RESEP : "bahan_id"
@@ -97,10 +104,13 @@ erDiagram
     MENU ||--o{ DETAIL_PESANAN : "menu_id"
 ```
 
-Constraint dan perilaku relasi yang didefinisikan migration:
+Catatan skema dan perilaku:
 
-- `users.no_hp` dan `bahan.nama_bahan` unik; `users.email` nullable dan memiliki unique index dari migration awal.
+- `menu.kategori` disimpan sebagai string dan divalidasi terhadap `kategori_menu` oleh aplikasi; migration tidak membuat foreign key di antara keduanya.
+- Tabel `bahan` memiliki kolom `status` dari migration, tetapi model dan alur web tidak menggunakannya.
+- `pesanan` tidak memiliki `pelanggan_id`. Nomor meja tidak unik; beberapa pesanan dapat menggunakan meja yang sama.
+- Detail pesanan menyimpan snapshot nama menu, harga, dan resep saat transaksi.
 - Pasangan `resep.menu_id` + `resep.bahan_id` unik; takaran resep dan jumlah stok masuk harus positif.
 - Stok, batas minimum, harga, subtotal, biaya, dan total dibatasi agar tidak negatif; nomor meja dibatasi 1–10.
-- `resep.menu_id` menghapus resep terkait saat menu dihapus; bahan yang masih dipakai resep dan menu yang sudah tercatat pada detail pesanan tidak dapat dihapus.
-- Detail pesanan dihapus saat pesanan dihapus. Relasi `pesanan.pelanggan_id` dan `pesanan.kasir_id` menjadi `NULL` saat user terkait dihapus; stok masuk membatasi penghapusan user/bahan yang dirujuk.
+- Resep terhapus saat menu dihapus; bahan yang masih dipakai resep dan menu yang sudah tercatat pada detail pesanan tidak dapat dihapus.
+- Detail pesanan terhapus saat pesanan dihapus. `pesanan.kasir_id` menjadi `NULL` saat user Kasir dihapus; riwayat stok masuk membatasi penghapusan user/bahan yang dirujuk.
